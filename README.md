@@ -84,6 +84,18 @@ When Core already has a complete authorized reply, send it as one `text`
 message rather than artificially splitting it into sentences. The incremental
 API remains available when authorized text genuinely arrives in pieces.
 
+For a standalone synthetic test of a delivery change within one session, use
+the client with two text pieces:
+
+```sh
+python scripts/stream_client.py --instruction-after-first 'Speak softly.' \
+  'The hallway lights are on.' 'The front door is locked.'
+```
+
+The client sends the new instruction between the two text pieces and requires an
+`instruction_set` acknowledgement. This does not authorize partial Cortex
+speech; the current Core handoff still sends one complete `speech_text`.
+
 Saved cloned voices are created via authenticated `POST /v1/voices` with
 `name`, `ref_audio` WAV, and exact `ref_text`. A saved voice ID is selectable in
 Wyoming and Cortex. Leaving `voice_id` empty requests natural-language voice

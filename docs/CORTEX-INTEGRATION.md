@@ -67,6 +67,11 @@ backend session rather than leaving text in an unconsumed queue. A new
 `voice_id`, `seed`, and `cfg_scale` are chosen at `start` and cannot be updated
 within that session. Only `instruction` changes delivery mid-session, from the
 next piece rather than retroactively changing audio already being spoken.
+For a local synthetic demonstration, `scripts/stream_client.py` accepts
+`--instruction-after-first` with at least two text pieces and checks the
+correlated `instruction_set` event. It does not make unapproved Core fragments
+speakable: the current Core integration sends one complete authorized
+`speech_text` and does not use this diagnostic option.
 
 `text` chunks are appended literally; a truly incremental caller must retain
 spaces between words and sentences. The pinned Breeze backend drains a

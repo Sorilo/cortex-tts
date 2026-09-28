@@ -420,3 +420,14 @@ before generic TTS selection, then measures Core result, HA/Wyoming events,
 first audible speaker output, room separation, barge-in, receipts, active-STT
 VRAM, and rollback. No HA, Satellite, Pi, or other Cortex repository was
 changed. It is a plan for a coordinated physical window, not physical evidence.
+
+Extended `scripts/stream_client.py` with `--instruction-after-first`: it sends
+an update between two text pieces, checks the correlated `instruction_set`
+event, and reports its timing. Two published alpha.8-backend/alpha.13-wrapper
+RTX 3080 synthetic turns acknowledged the update and delivered first PCM before
+the delayed second text. Both returned 180,480 PCM bytes; first-PCM was
+368/328 ms. The first turn had one 178 ms idealized zero-buffer gap at the
+phrase boundary, while the shape-warm repeat had none. The output WAV/JSON is
+ignored under `evidence/local/`. The 44-test local suite passes. This is a
+diagnostic control example, not authorization to stream partial Core text or
+proof of audible direction fidelity. The isolated stack and token were removed.

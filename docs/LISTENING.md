@@ -82,3 +82,9 @@ Check names, numbers, phrase joins, and long-reply consistency. These files
 were generated under active Whisper and are one stochastic sample per prompt,
 not a human score. `docs/VALIDATION.md` records the timing and GPU limits;
 human clone-similarity and direction judgments remain open.
+
+The ignored `evidence/local/instruction-update-alpha13.wav` demonstrates a
+single stream that starts with “Speak clearly and naturally,” then sends
+“Speak softly, with reassuring warmth and a slightly slower pace” before its
+second phrase. Listen for a change in delivery across the two phrases without
+assuming the `instruction_set` acknowledgement proves the intended sound.

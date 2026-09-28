@@ -65,6 +65,8 @@ async def services():
                             await ws.close()
                             break
                         await ws.send_bytes(b"\x01\x00" * 100)
+                    elif data["type"] == "instruction":
+                        await ws.send_json({"type": "instruction_set"})
                     elif data["type"] == "end":
                         complete_task = asyncio.create_task(finish())
                     elif data["type"] == "cancel":
@@ -146,6 +148,31 @@ async def test_stream_client_receives_audio_before_later_text(services, monkeypa
     assert result["ideal_zero_buffer_underruns"] == 1
     assert result["ideal_zero_buffer_underrun_seconds"] > 0.05
     assert result["largest_chunk_gap_seconds"] > 0.05
+
+
+@pytest.mark.asyncio
+async def test_stream_client_acknowledges_mid_session_instruction(services, monkeypatch):
+    base, done_gate, _, _ = services
+    done_gate.set()
+    monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
+    args = SimpleNamespace(url=base.replace("http://", "ws://") + "/v1/speech/stream",
+                           voice="", instruction="Speak clearly.",
+                           instruction_after_first="Speak softly.",
+                           text=["First phrase.", "Second phrase."], output=None,
+                           cancel_after_audio_bytes=0, piece_delay_ms=100,
+                           flush_each=False, timeout=2)
+    result = await asyncio.wait_for(run_stream_client(args), 2)
+    assert result["complete"] and result["bytes"] == 400
+    assert result["instruction_set_events"] == 1
+    assert result["instruction_set_seconds"] is not None
+    assert result["first_audio_before_last_text"]
+
+
+@pytest.mark.asyncio
+async def test_stream_client_instruction_update_requires_later_text():
+    with pytest.raises(ValueError, match="at least two text pieces"):
+        await run_stream_client(SimpleNamespace(text=["Only one."],
+                                                instruction_after_first="Speak softly."))
 
 
 @pytest.mark.asyncio

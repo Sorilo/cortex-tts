@@ -47,6 +47,9 @@ async def run(args: argparse.Namespace, *,
               on_audio: Callable[[bytes], Awaitable[None]] | None = None,
               cancel_event: asyncio.Event | None = None) -> dict:
     """Receive progressive PCM; optionally forward each packet before completion."""
+    instruction_after_first = getattr(args, "instruction_after_first", None)
+    if instruction_after_first is not None and len(args.text) < 2:
+        raise ValueError("instruction update needs at least two text pieces")
     headers = {"Authorization": "Bearer " + os.environ["CORTEX_TTS_TOKEN"]}
     started = time.monotonic()
     first_audio = None
@@ -60,6 +63,8 @@ async def run(args: argparse.Namespace, *,
     last_text_sent = None
     end_sent = None
     ready_seconds = None
+    instruction_set_events = 0
+    instruction_set_seconds = None
     last_chunk_at = None
     largest_chunk_gap = 0.0
     ideal_playback_end = None
@@ -91,6 +96,9 @@ async def run(args: argparse.Namespace, *,
                         first_text_sent = last_text_sent
                     if args.flush_each:
                         await ws.send_json({"type": "flush"})
+                    if index == 0 and instruction_after_first is not None:
+                        await ws.send_json({"type": "instruction",
+                                            "instruction": instruction_after_first})
                     if index + 1 < len(args.text) and args.piece_delay_ms:
                         await asyncio.sleep(args.piece_delay_ms / 1000)
                 await ws.send_json({"type": "end"})
@@ -153,6 +161,9 @@ async def run(args: argparse.Namespace, *,
                             raise RuntimeError("turn correlation changed")
                         if event.get("type") == "error":
                             raise RuntimeError(str(event.get("message", "synthesis failed")))
+                        if event.get("type") == "instruction_set":
+                            instruction_set_events += 1
+                            instruction_set_seconds = time.monotonic() - started
                         if event.get("type") == "cancelled":
                             cancel_ack_seconds = time.monotonic() - cancel_sent if cancel_sent else None
                             break
@@ -174,6 +185,8 @@ async def run(args: argparse.Namespace, *,
                     raise send_result[0]
             if complete and end_sent is None:
                 raise RuntimeError("backend completed before all text was sent")
+            if complete and instruction_after_first is not None and instruction_set_events != 1:
+                raise RuntimeError("instruction update was not acknowledged")
             if not complete and cancel_ack_seconds is None:
                 raise RuntimeError("stream closed before completion")
     elapsed = time.monotonic() - started
@@ -189,6 +202,8 @@ async def run(args: argparse.Namespace, *,
             wav.writeframes(pcm)
     return {"turn_id": turn_id, "first_audio_seconds": first_audio,
             "ready_seconds": ready_seconds,
+            "instruction_set_events": instruction_set_events,
+            "instruction_set_seconds": instruction_set_seconds,
             "elapsed_seconds": elapsed, "audio_seconds": audio_bytes / 48000,
             "generation_x_realtime": (audio_bytes / 48000) / elapsed if elapsed else 0,
             "bytes": audio_bytes, "complete": complete,
@@ -217,6 +232,8 @@ def main() -> None:
     parser.add_argument("--url", default="ws://127.0.0.1:18080/v1/speech/stream")
     parser.add_argument("--voice", default="")
     parser.add_argument("--instruction", default="Speak clearly and naturally.")
+    parser.add_argument("--instruction-after-first",
+                        help="Change delivery for later text pieces in the same session")
     parser.add_argument("--output", help="Optional WAV output path")
     parser.add_argument("--cancel-after-audio-bytes", type=int, default=0)
     parser.add_argument("--piece-delay-ms", type=int, default=0,
@@ -227,6 +244,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.piece_delay_ms < 0 or args.timeout <= 0:
         parser.error("piece delay must be nonnegative and timeout must be positive")
+    if args.instruction_after_first is not None and len(args.text) < 2:
+        parser.error("instruction update needs at least two text pieces")
     print(json.dumps(asyncio.run(run(args)), indent=2))
 
 

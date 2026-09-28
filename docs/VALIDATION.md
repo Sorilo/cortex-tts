@@ -44,6 +44,22 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- The runnable Cortex streaming client now accepts a mid-session
+  `--instruction-after-first` update and requires one correlated
+  `instruction_set` acknowledgement. Two synthetic phrases were sent through
+  the published alpha.8-backend/alpha.13-wrapper pair in an isolated RTX 3080
+  project, with a deliberate 700 ms pause before the second text piece. Both
+  turns completed with 180,480 PCM bytes, one update acknowledgement, and
+  first PCM before the second text arrived. The first turn reached PCM in
+  368 ms and showed one 178 ms idealized zero-buffer underrun at the phrase
+  boundary; its repeat reached PCM in 328 ms with zero modeled underruns.
+  Because the input delay is intentional, the reported end-to-end audio/wall
+  ratio is not a pure backend generation rate. Wrapper metrics showed two
+  requests, zero failures, and no active/queued request; backend and wrapper
+  had zero restarts, and Vulkan0 was identified on the RTX 3080. Ignored
+  repeat evidence is `evidence/local/instruction-update-alpha13.{json,wav}`.
+  The isolated stack and token were removed. This verifies transport/event
+  behavior, not audible direction fidelity or physical playback continuity.
 - `docs/CORTEX-INTEGRATION.md` now defines a coordinated first-speaker test
   through the current isolated HA Wyoming provider and LVA playback sink,
   with authority, room, barge-in, latency, and rollback observations. This is

@@ -335,8 +335,23 @@ target playback client.
   began PCM in 11.28 s despite `/readyz` returning 200; an immediate exact
   repeat began in 0.424 s. Thus restart recovery works, but current readiness
   does not guarantee shader/shape warmup after a backend-only restart. The
-  local run is `evidence/local/local-wrapper-restart-recovery.json`; a
-  published-image check is still required for this wrapper change.
+  local run is `evidence/local/local-wrapper-restart-recovery.json`.
+- Alpha.9 source tests and image publication passed for commit
+  `d5860cd0d1255bf92065131f1883d8adb3c0b3e5`. The release Compose now
+  pins its published wrapper OCI index
+  `sha256:4e72820923e0b85975b14f269992bc942e3b7257a94cc2244ed37356cf25652a`
+  with the verified alpha.8 backend index above. In an isolated published-pair
+  RTX 3080 smoke, an immediate dedicated-backend restart after first PCM
+  produced exactly one terminal `code:backend` event correlated to the
+  interrupted turn, with zero later PCM. A fresh turn completed with 111,360
+  PCM bytes; its first PCM took 11.29 s after the backend-only restart despite
+  `/readyz` returning 200. A subsequent Wyoming turn returned AudioStart,
+  five AudioChunks, AudioStop and 88,320 PCM bytes. Wrapper metrics counted
+  two Cortex requests, one failure, no active or queued request; the wrapper
+  itself did not restart. The isolated stack was removed. Published evidence
+  is `evidence/local/published-alpha9-restart-smoke.json`. This confirms
+  recovery and correct error classification, while preserving the cold-restart
+  latency limitation and leaving physical playback unverified.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

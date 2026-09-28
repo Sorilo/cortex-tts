@@ -48,7 +48,8 @@ event with `code:protocol`; backend and transport failures use `code:backend`.
 Authenticated `GET /v1/voices` lists saved voice IDs. `POST /v1/voices`
 accepts multipart `name`, `ref_audio` WAV, and exact `ref_text`. The backend
 stores the encoded voice profile. `GET /readyz` checks backend availability,
-while `GET /livez` only checks the wrapper. Authenticated `/v1/metrics` exposes
+not post-restart shader/shape warmup. `GET /livez` only checks the wrapper.
+Authenticated `/v1/metrics` exposes
 counts and timing without utterance text or audio.
 
 ## Later integration checklist

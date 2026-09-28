@@ -169,5 +169,11 @@ survived an immediate isolated backend restart: the interrupted turn got one
 terminal backend error, no stale PCM, and a fresh turn completed. The first
 post-restart turn took 11.28 s to first PCM despite `/readyz` returning 200;
 an exact warm repeat took 0.424 s. This cold-recovery limitation is documented
-in docs/VALIDATION.md. Publish and verify an immutable alpha.9 wrapper, then
-pin its digest in release Compose; physical playback remains pending.
+in docs/VALIDATION.md. Alpha.9 wrapper published at OCI index
+`sha256:4e72820923e0b85975b14f269992bc942e3b7257a94cc2244ed37356cf25652a`;
+the digest-pinned release pairs it with the verified alpha.8 backend. The
+exact published pair passed an isolated immediate backend-restart check: one
+correlated terminal backend error, zero late PCM, a fresh 111,360-byte turn
+and a subsequent Wyoming synthesis. Tag tests and image publication passed;
+see docs/ROLLBACK.md for the prior verified pair. Physical playback and
+owner listening remain pending.

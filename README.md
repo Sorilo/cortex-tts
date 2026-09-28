@@ -41,6 +41,9 @@ runner instructions do not leak into the deployed binary. The wrapper warms shor
 ports (set `CORTEX_TTS_WARMUP=false` only for diagnostics). A cold restart took
 about 20 seconds to become ready in the local RTX 3080 test. Ordinary Python tests
 do not allocate a GPU.
+After a backend-only restart, `/readyz` may return healthy before shader/shape
+warmup; the first recovered turn took about 11 seconds to first PCM in the
+isolated test. Check audible startup separately after a restart.
 `BREEZE_CHUNK_FIRST=2` and `BREEZE_CHUNK_MAX=25` are the provisional streaming
 defaults. The first value controls early PCM and how quickly an in-flight
 chunk can be cancelled; one-frame output needs more playback buffering and
@@ -55,7 +58,7 @@ isolated Whisper coexistence run with predownloaded `base.en` or
 the active Cortex deployment's model volume or STT container.
 The release file uses ports 18084 and 10224 by default, separate from the
 development file's ports. Both files require an explicit GPU device.
-The current release pins the tested alpha.8 backend and alpha.7 wrapper pair.
+The current release pins the tested alpha.8 backend and alpha.9 wrapper pair.
 See [docs/ROLLBACK.md](docs/ROLLBACK.md) for the exact fallback pair and
 first-chunk setting if the new backend needs to be rolled back.
 

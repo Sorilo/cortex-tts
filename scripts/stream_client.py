@@ -8,6 +8,7 @@ import os
 import time
 import wave
 from pathlib import Path
+from typing import Awaitable, Callable
 
 import aiohttp
 
@@ -42,11 +43,14 @@ def simulate_playback(packets: list[tuple[float, float]], threshold_seconds: flo
             "underruns": underruns, "underrun_seconds": underrun_seconds}
 
 
-async def run(args: argparse.Namespace) -> dict:
+async def run(args: argparse.Namespace, *,
+              on_audio: Callable[[bytes], Awaitable[None]] | None = None) -> dict:
+    """Receive progressive PCM; optionally forward each packet before completion."""
     headers = {"Authorization": "Bearer " + os.environ["CORTEX_TTS_TOKEN"]}
     started = time.monotonic()
     first_audio = None
     pcm = bytearray()
+    audio_bytes = 0
     cancel_sent = None
     cancel_ack_seconds = None
     audio_bytes_after_cancel = 0
@@ -110,11 +114,15 @@ async def run(args: argparse.Namespace) -> dict:
                             ideal_playback_end = arrived + duration
                         else:
                             ideal_playback_end += duration
-                        pcm.extend(message.data)
+                        audio_bytes += len(message.data)
+                        if args.output:
+                            pcm.extend(message.data)
+                        if on_audio is not None:
+                            await on_audio(message.data)
                         if cancel_sent is not None:
                             audio_bytes_after_cancel += len(message.data)
                         if (args.cancel_after_audio_bytes and cancel_sent is None
-                                and len(pcm) >= args.cancel_after_audio_bytes):
+                                and audio_bytes >= args.cancel_after_audio_bytes):
                             sender.cancel()
                             await asyncio.gather(sender, return_exceptions=True)
                             cancel_sent = time.monotonic()
@@ -156,9 +164,9 @@ async def run(args: argparse.Namespace) -> dict:
             wav.writeframes(pcm)
     return {"turn_id": turn_id, "first_audio_seconds": first_audio,
             "ready_seconds": ready_seconds,
-            "elapsed_seconds": elapsed, "audio_seconds": len(pcm) / 48000,
-            "generation_x_realtime": (len(pcm) / 48000) / elapsed if elapsed else 0,
-            "bytes": len(pcm), "complete": complete,
+            "elapsed_seconds": elapsed, "audio_seconds": audio_bytes / 48000,
+            "generation_x_realtime": (audio_bytes / 48000) / elapsed if elapsed else 0,
+            "bytes": audio_bytes, "complete": complete,
             "largest_chunk_gap_seconds": largest_chunk_gap,
             "ideal_zero_buffer_underruns": ideal_underruns,
             "ideal_zero_buffer_underrun_seconds": ideal_underrun_seconds,

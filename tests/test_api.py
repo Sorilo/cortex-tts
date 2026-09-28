@@ -1,5 +1,6 @@
 import asyncio
 import json
+import wave
 from pathlib import Path
 from runpy import run_path
 from types import SimpleNamespace
@@ -148,9 +149,26 @@ async def test_stream_client_receives_audio_before_later_text(services, monkeypa
 
 
 @pytest.mark.asyncio
+async def test_stream_client_writes_received_pcm_to_wav(services, monkeypatch, tmp_path):
+    base, done_gate, _, _ = services
+    done_gate.set()
+    monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
+    output = tmp_path / "speech.wav"
+    args = SimpleNamespace(url=base.replace("http://", "ws://") + "/v1/speech/stream",
+                           voice="", instruction="Speak clearly.", text=["Hello."],
+                           output=str(output), cancel_after_audio_bytes=0,
+                           piece_delay_ms=0, flush_each=False, timeout=2)
+    result = await asyncio.wait_for(run_stream_client(args), 2)
+    with wave.open(str(output), "rb") as saved:
+        assert saved.getnchannels() == 1
+        assert saved.getframerate() == 24000
+        assert saved.readframes(saved.getnframes()) == b"\x01\x00" * 100
+    assert result["complete"] and result["bytes"] == 200
+
+
+@pytest.mark.asyncio
 async def test_core_authorized_turn_streams_through_wrapper(services, monkeypatch):
     base, done_gate, _, engine = services
-    done_gate.set()
     monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
     scripts = Path(__file__).resolve().parents[1] / "scripts"
     with monkeypatch.context() as path_context:
@@ -170,17 +188,35 @@ async def test_core_authorized_turn_streams_through_wrapper(services, monkeypatc
     await runner.setup()
     site = web.TCPSite(runner, "127.0.0.1", 0)
     await site.start()
+    packets = []
+    first_packet = asyncio.Event()
+
+    async def on_audio(pcm):
+        packets.append(pcm)
+        first_packet.set()
+
+    task = None
     try:
         core_url = f"http://127.0.0.1:{site._server.sockets[0].getsockname()[1]}"
-        result = await asyncio.wait_for(synthesize_core_turn(
+        task = asyncio.create_task(synthesize_core_turn(
             core_url, turn_id, "core-test-token",
             tts_url=base.replace("http://", "ws://") + "/v1/speech/stream",
-        ), 2)
+            on_audio=on_audio,
+        ))
+        await asyncio.wait_for(first_packet.wait(), 2)
+        assert packets == [b"\x01\x00" * 100]
+        assert not task.done()
+        done_gate.set()
+        result = await asyncio.wait_for(task, 2)
         assert result["core_audio_turn_id"] == turn_id
         assert result["core_action_id"] == "act_test"
         assert result["tts"]["complete"] and result["tts"]["bytes"] == 200
         assert engine.metrics.requests == 1
     finally:
+        done_gate.set()
+        if task is not None and not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
         await runner.cleanup()
 
 

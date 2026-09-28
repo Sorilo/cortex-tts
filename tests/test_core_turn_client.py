@@ -48,8 +48,9 @@ async def test_core_turn_client_waits_for_authoritative_speech(core_server, monk
     ]
     calls = []
 
-    async def tts(args):
+    async def tts(args, *, on_audio=None):
         calls.append(args)
+        assert on_audio is None
         return {"turn_id": "tts-turn", "complete": True, "bytes": 4800}
 
     monkeypatch.setattr(core_turn_client, "run_stream_client", tts)
@@ -80,7 +81,7 @@ async def test_core_turn_client_rejects_untrusted_or_uncorrelated_result(
     base, state = core_server
     state["responses"] = [response]
 
-    async def unexpected_tts(_):
+    async def unexpected_tts(_, *, on_audio=None):
         pytest.fail("TTS must not receive an untrusted Core result")
 
     monkeypatch.setattr(core_turn_client, "run_stream_client", unexpected_tts)
@@ -98,8 +99,9 @@ async def test_approval_pending_speech_requires_opt_in(core_server, monkeypatch)
                            "speech_text": "This action needs owner approval before it can run."}]
     calls = []
 
-    async def tts(args):
+    async def tts(args, *, on_audio=None):
         calls.append(args.text)
+        assert on_audio is None
         return {"complete": True}
 
     monkeypatch.setattr(core_turn_client, "run_stream_client", tts)
@@ -128,7 +130,7 @@ async def test_core_turn_client_rejects_action_switch_while_polling(core_server,
          "speech_text": "Wrong action."},
     ]
 
-    async def unexpected_tts(_):
+    async def unexpected_tts(_, *, on_audio=None):
         pytest.fail("TTS must not receive speech from a switched action")
 
     monkeypatch.setattr(core_turn_client, "run_stream_client", unexpected_tts)

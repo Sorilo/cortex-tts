@@ -25,6 +25,12 @@ Core's approval-pending phrase. It can cancel its own TTS stream for a test,
 but never calls Core's action-interrupt endpoint. Tokens remain in the client
 environment, not in the TTS containers or JSON output. The example saves
 received PCM as a WAV after the stream; it is not a physical playback client.
+Its Python `synthesize_core_turn(..., on_audio=async_packet_handler)` entry
+point forwards each PCM packet before `done`, with natural backpressure while
+the handler runs. Keep that handler short and enqueue into a bounded playback
+queue. The caller still owns speaker start, buffer depth, barge-in and any Core
+action interruption. Without a WAV output path, the example retains packet
+timings and byte counts but not the complete waveform.
 
 Open `GET /v1/speech/stream` as WebSocket with `Authorization: Bearer <token>`.
 The server returns `ready` with `version:1`, `turn_id`, `sample_rate:24000`,

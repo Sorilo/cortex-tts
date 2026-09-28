@@ -248,3 +248,13 @@ The RTX 3080 Vulkan backend was confirmed by log and GPU process ownership.
 Recorded synthetic limits in `docs/VALIDATION.md`; ignored JSON/WAV evidence
 stays under `evidence/local/`. The isolated project is down and its temporary
 token file was removed. Physical playback and human sound judgment remain open.
+
+The trusted Core turn Python client now accepts an async `on_audio` callback
+that receives each PCM packet before `done`, allowing a coordinated playback
+transport to enqueue audio immediately. The streaming client stores complete
+PCM only when writing a WAV, keeping long callback-only turns memory-bounded.
+The fake-Core/fake-backend wrapper test holds completion until after the first
+callback and verifies that PCM was delivered while synthesis was still active.
+A separate WAV regression test keeps file output covered after removing the
+unneeded in-memory accumulation on callback-only turns; 31 local tests pass.
+No physical Satellite transport was changed or claimed validated.

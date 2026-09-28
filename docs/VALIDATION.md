@@ -44,7 +44,7 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 30 local tests pass. They cover Cortex
+- Python package compiles; 31 local tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   Wyoming stream timeout,
@@ -54,7 +54,9 @@ target playback client.
   JSON, out-of-order text and unknown message types, plus the playback
   fill-level simulation used by the corpus benchmark. Six Core-result gate
   cases and one synthetic Core-to-wrapper path verify that only correlated,
-  authorized `speech_text` reaches TTS.
+  authorized `speech_text` reaches TTS. The synthetic Core-to-wrapper path
+  also asserts that its PCM callback receives audio before synthesis finishes;
+  a separate test checks the saved 24 kHz mono WAV bytes.
 - The opt-in Core turn client was also exercised against the published
   alpha.8 backend/alpha.10 wrapper Q4 digest pair on the RTX 3080. An isolated
   authenticated fake Core returned an unspeakable `admitted` result followed

@@ -105,6 +105,11 @@ python scripts/core_turn_client.py --core-url "$CORTEX_CORE_URL" \
 
 The script saves a WAV after receiving
 progressive PCM; it does not implement device playback or change Core actions.
+For a trusted Python playback transport, `synthesize_core_turn(...,
+on_audio=async_packet_handler)` passes each PCM packet to the handler before
+TTS completion. With no `--output`, the client counts packets without retaining
+the entire waveform in memory. The handler should enqueue promptly into a
+measured playback buffer; this example does not choose a Satellite buffer policy.
 See [docs/CORTEX-INTEGRATION.md](docs/CORTEX-INTEGRATION.md) before adapting it
 to a live voice path.
 

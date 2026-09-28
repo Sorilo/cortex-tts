@@ -11,6 +11,7 @@ import os
 import re
 import time
 from types import SimpleNamespace
+from typing import Awaitable, Callable
 
 import aiohttp
 
@@ -69,7 +70,8 @@ async def synthesize_core_turn(core_url: str, turn_id: str, core_token: str, *,
                                output: str | None = None, core_timeout: float = 15.0,
                                poll_interval: float = 0.2, tts_timeout: float = 120.0,
                                allow_approval_pending: bool = False,
-                               cancel_after_audio_bytes: int = 0) -> dict:
+                               cancel_after_audio_bytes: int = 0,
+                               on_audio: Callable[[bytes], Awaitable[None]] | None = None) -> dict:
     authoritative = await core_speech(
         core_url, turn_id, core_token, actor=actor, timeout=core_timeout,
         poll_interval=poll_interval, allow_approval_pending=allow_approval_pending,
@@ -79,7 +81,7 @@ async def synthesize_core_turn(core_url: str, turn_id: str, core_token: str, *,
         text=[authoritative["speech_text"]], output=output,
         cancel_after_audio_bytes=cancel_after_audio_bytes,
         piece_delay_ms=0, flush_each=False, timeout=tts_timeout,
-    ))
+    ), on_audio=on_audio)
     return {"core_audio_turn_id": authoritative["audio_turn_id"],
             "core_action_id": authoritative["action_id"],
             "core_state": authoritative["state"], "tts": tts}

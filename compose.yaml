@@ -5,6 +5,20 @@ services:
       context: .
       dockerfile: docker/backend/Dockerfile
     image: cortex-tts-backend:local
+    command:
+      - /models/breeze-tts-2-q4_k.gguf
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --ws-port
+      - "8081"
+      - --voices-dir
+      - /voices
+      - --chunk-first
+      - "${BREEZE_CHUNK_FIRST:-2}"
+      - --chunk-max
+      - "${BREEZE_CHUNK_MAX:-25}"
     deploy:
       resources:
         reservations:

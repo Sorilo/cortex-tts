@@ -237,6 +237,35 @@ target playback client.
   gap and no modeled underrun. These results support sending an already-complete
   Core-authorized response as one message. They do not prove arbitrary
   incremental speech, device playback or naturalness is free of gaps.
+- First-chunk tuning used the unchanged published backend binary with isolated
+  Compose command overrides. At four frames, 20 cancel/fresh-turn pairs had
+  client-observed cancel median/p95 221/285 ms (maximum 293 ms): all fresh
+  turns completed, zero PCM arrived after the cancel request, and metrics
+  showed 20 cancellations with zero failures. At two frames, 20 comparable
+  pairs had median/p95 116/121 ms (maximum 123 ms). With isolated pinned
+  Wyoming `base.en` actively transcribing 60 synthetic commands, another 20
+  two-frame pairs had median/p95 120/138 ms; one 345 ms outlier exceeded the
+  250 ms goal, so the bound is not unconditional. All 40 two-frame fresh turns
+  completed and both STT batches transcribed 60/60 exact commands.
+- Two-frame Q4 combined-message corpus runs completed above real time: 16
+  shape-warm turns had first-packet median/p95 123/126 ms, minimum speed
+  1.56× and zero idealized zero-buffer underruns; eight fresh-shape turns had
+  123/295 ms, minimum 1.62× and zero modeled underruns. With `base.en`
+  actively transcribing 60 generated commands, 16 further combined turns had
+  126/135 ms, minimum 1.75×, zero modeled underruns and 3,695 MiB observed
+  peak GPU memory in 150 samples. All three isolated containers had zero
+  restarts. A fresh split-message corpus still had two of eight idealized
+  zero-buffer underrun requests; chunk tuning does not fix phrase boundaries.
+- One-frame exploratory tuning lowered 20 active-STT cancel/fresh-turn pairs
+  to median/p95 85/93 ms (maximum 94 ms), but 16 warm combined turns had six
+  tiny idealized zero-buffer underruns totaling 27 ms. A modeled 0.32 s PCM
+  fill eliminated them and began playback at median/p95 285/311 ms. A fresh
+  combined run had 0.32 s-fill playback 281/464 ms, zero modeled underruns
+  and minimum 1.56× speed. A fresh split-message run had four of eight
+  zero-buffer underrun requests, versus two of eight with two-frame chunks.
+  Active `base.en` transcribed 60/60 commands and observed peak memory was
+  3,684 MiB. Two frames is the provisional default pending physical playback
+  and human listening; one frame remains an opt-in experiment.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

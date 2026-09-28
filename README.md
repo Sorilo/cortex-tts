@@ -41,6 +41,11 @@ runner instructions do not leak into the deployed binary. The wrapper warms shor
 ports (set `CORTEX_TTS_WARMUP=false` only for diagnostics). A cold restart took
 about 20 seconds to become ready in the local RTX 3080 test. Ordinary Python tests
 do not allocate a GPU.
+`BREEZE_CHUNK_FIRST=2` and `BREEZE_CHUNK_MAX=25` are the provisional streaming
+defaults. The first value controls early PCM and how quickly an in-flight
+chunk can be cancelled; one-frame output needs more playback buffering and
+showed extra modeled gaps on split-message text. Set either value only after
+measuring first sound, cancellation, throughput and rebuffers together.
 
 The published alpha images are pinned by digest in `compose.release.yaml`.
 When a safe GPU window is available, run that file on its own for a separate

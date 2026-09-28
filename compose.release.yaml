@@ -2,6 +2,20 @@ name: cortex-tts-release
 services:
   breeze-backend:
     image: ghcr.io/sorilo/cortex-tts-backend@sha256:0ace2780f6a5b4f47fe4ca5b977db83c09e51bdd38f4c9a5a1f6df023262e65e
+    command:
+      - /models/breeze-tts-2-q4_k.gguf
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --ws-port
+      - "8081"
+      - --voices-dir
+      - /voices
+      - --chunk-first
+      - "${BREEZE_CHUNK_FIRST:-2}"
+      - --chunk-max
+      - "${BREEZE_CHUNK_MAX:-25}"
     deploy:
       resources:
         reservations:

@@ -114,3 +114,17 @@ send already-complete Core-authorized speech in one `text` message, preserving
 literal incremental chunks only when speech truly arrives that way. Long-reply
 inter-packet gaps still warrant real playback tests. No runtime coalescing or
 extra startup warmup was added.
+
+Chunk-first tuning: new `scripts/benchmark_cancel.py` repeats real
+cancel-after-first-PCM and fresh-turn recovery. Published backend binary at
+four-frame default missed the 250 ms cancel goal at p95 285 ms (20 pairs).
+Two-frame override reached p95 121 ms (20 pairs alone) and 138 ms (20 pairs
+with active pinned Whisper base.en), though one active-STT cancel took 345 ms.
+Warm/fresh combined-text Q4 corpus remained >1.5× real time with zero modeled
+underruns; observed active-STT peak was 3,695 MiB. One-frame override cut
+cancel p95 further to 93 ms under STT load, but introduced extra modeled
+zero-buffer gaps in warm combined and cold split-message speech; a 0.32 s
+fill removed warm combined gaps in simulation. Set the provisional default to
+two frames in backend Dockerfile and both Compose files; expose first/max
+chunk settings in `.env.example`. Publish/pin/verify a new immutable backend
+image, then revisit audible quality and real playback on Satellite.

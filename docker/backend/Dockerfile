@@ -25,4 +25,4 @@ ENV NVIDIA_VISIBLE_DEVICES=all \
     VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia-headless.json
 EXPOSE 8080 8081
 ENTRYPOINT ["/usr/local/bin/breeze-server"]
-CMD ["/models/breeze-tts-2-q4_k.gguf", "--host", "0.0.0.0", "--port", "8080", "--ws-port", "8081", "--voices-dir", "/voices", "--chunk-first", "4", "--chunk-max", "25"]
+CMD ["/models/breeze-tts-2-q4_k.gguf", "--host", "0.0.0.0", "--port", "8080", "--ws-port", "8081", "--voices-dir", "/voices", "--chunk-first", "2", "--chunk-max", "25"]

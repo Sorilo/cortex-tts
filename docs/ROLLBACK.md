@@ -3,17 +3,20 @@
 `compose.release.yaml` is a separate Cortex TTS project. Its current tested
 pair is the alpha.8 backend OCI index
 `sha256:c8b2411666e60b76665f694f3f8c9d6bcf01a20f845f6dee33a1bbf28cd46a67`
-and alpha.10 wrapper OCI index
-`sha256:192b16de727635df8ad1b194636df0b0641cb06995306f614816e12dfa9b91d9`,
+and alpha.11 wrapper OCI index
+`sha256:8074f07a6a3a7daf105407c7bd70bcdb867a34a04c9c7941339a100c0dcfdd43`,
 with `BREEZE_CHUNK_FIRST=2` and `BREEZE_CHUNK_MAX=25`. The two-frame setting
 was tested against the published alpha.8 image; read `docs/VALIDATION.md` for
 the observed cancellation and continuity tradeoff.
 
 To roll back only the wrapper, set `wrapper.image` in this project's
-`compose.release.yaml` to the previously verified alpha.9 index
-`ghcr.io/sorilo/cortex-tts-wrapper@sha256:4e72820923e0b85975b14f269992bc942e3b7257a94cc2244ed37356cf25652a`.
+`compose.release.yaml` to the previously verified alpha.10 index
+`ghcr.io/sorilo/cortex-tts-wrapper@sha256:192b16de727635df8ad1b194636df0b0641cb06995306f614816e12dfa9b91d9`.
 Leave the alpha.8 backend digest and two-frame chunk setting unchanged. That
-pair passed an isolated backend-restart, Wyoming and saved-voice smoke. It
+pair passed isolated recovery, active Whisper, cancellation and streaming
+checks. The older alpha.9 wrapper index is
+`ghcr.io/sorilo/cortex-tts-wrapper@sha256:4e72820923e0b85975b14f269992bc942e3b7257a94cc2244ed37356cf25652a`.
+The alpha.9 pair passed an isolated backend-restart, Wyoming and saved-voice smoke. It
 correctly reports backend stream failures, but `/readyz` can become healthy
 before post-restart synthesis is warm, causing an approximately 11-second
 first-PCM delay in the observed first recovered turn.
@@ -43,7 +46,7 @@ this project only. Check `/readyz`, confirm the backend log reports `Vulkan0`,
 and synthesize a short Cortex or Wyoming test turn. The release project must
 remain separate from any active Cortex, Whisper, Satellite or Pi stack.
 
-To return to the current release, restore the alpha.8 backend and alpha.10
+To return to the current release, restore the alpha.8 backend and alpha.11
 wrapper digests above and `BREEZE_CHUNK_FIRST=2`, re-render Compose and repeat
 the dedicated-project readiness and speech smoke checks. No model assets or
 voice profiles need to be replaced for this image and chunk-setting rollback.

@@ -330,3 +330,13 @@ samples. Previously the list grew for every request over the service lifetime.
 Added a retention regression; 37 local tests pass. Version advanced to
 alpha.11 for a publishable wrapper build. The release Compose digest is still
 alpha.10 until the new image has been published and validated.
+
+Alpha.11 publication and isolated Q4 smoke succeeded. Wrapper OCI index
+`sha256:8074f07a6a3a7daf105407c7bd70bcdb867a34a04c9c7941339a100c0dcfdd43`
+was tested with the existing alpha.8 backend digest on dev RTX 3080; one
+synthetic turn returned 2.08 s PCM in 1.28 s with first PCM at 390 ms.
+Metrics had one recent sample, one request, zero failures; both containers
+had zero restarts. This is a packaging/behavior smoke, not a new latency
+distribution, active-STT, listening, or physical test. Updated release Compose,
+README, rollback and validation docs to the tested pair. The isolated project
+and temporary token/voice files were removed.

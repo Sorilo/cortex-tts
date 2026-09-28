@@ -44,6 +44,20 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- The published alpha.11 wrapper OCI index
+  `sha256:8074f07a6a3a7daf105407c7bd70bcdb867a34a04c9c7941339a100c0dcfdd43`
+  bounds first-audio metrics to the most recent 20 samples. Source commit
+  `45845c09b5a639bba72806a304dc4166ba32aba4` passed 37 local tests and
+  the [CI](https://github.com/Sorilo/cortex-tts/actions/runs/36404777846)
+  and [image publication](https://github.com/Sorilo/cortex-tts/actions/runs/36404777766)
+  workflows. An isolated published alpha.8-backend/alpha.11-wrapper Q4 turn on
+  the dev RTX 3080 returned 99,840 bytes (2.08 s) of PCM in 1.28 s, with
+  first client PCM at 390 ms. Authenticated metrics showed one recent sample,
+  one request, zero failures, and no active or queued request. The wrapper was
+  healthy, both containers had zero restarts, and the backend log identified
+  Vulkan0 on the RTX 3080. This one first-shape smoke is not a latency
+  distribution or a fresh active-Whisper/physical-playback test. Its isolated
+  containers, network, token, and temporary voice directory were removed.
 - A read-only audit of `cortex-satellite` main at
   `d332fb3da791c0c53106ef46a41715ba14079c33` confirms that its Python
   runtime supervises pinned Linux Voice Assistant, which uses the selected HA

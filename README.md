@@ -61,7 +61,7 @@ isolated Whisper coexistence run with predownloaded `base.en` or
 the active Cortex deployment's model volume or STT container.
 The release file uses ports 18084 and 10224 by default, separate from the
 development file's ports. Both files require an explicit GPU device.
-The current release pins the tested alpha.8 backend and alpha.10 wrapper pair.
+The current release pins the tested alpha.8 backend and alpha.11 wrapper pair.
 `BREEZE_MODEL_FILE` can select an already verified Q6_K or Q8_0 file for an
 isolated comparison; when unset, the release still loads Q4_K. See
 [docs/LISTENING.md](docs/LISTENING.md) for the local matched review set.

@@ -36,6 +36,15 @@ container smoke test and check `/readyz`; `gpus: all` alone is not proof that
 Vulkan selected the intended 3080. No GPU allocation is attempted by ordinary
 Python tests.
 
+The published alpha images are pinned by digest in `compose.release.yaml`.
+When a safe GPU window is available, run that file on its own for a separate
+`cortex-tts-release` project. Add `-f compose.stt-bench.yaml` only for an
+isolated Whisper coexistence run with predownloaded `base.en` or
+`distil-small.en` files in `STT_BENCH_MODEL_DIR`. That profile never references
+the active Cortex deployment's model volume or STT container.
+The release file uses ports 18084 and 10224 by default, separate from the
+development file's ports. Both files require an explicit GPU device.
+
 ## Contract
 
 See [docs/CORTEX-INTEGRATION.md](docs/CORTEX-INTEGRATION.md) for the versioned

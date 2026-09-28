@@ -30,14 +30,17 @@ task's STT container. Store machine-local measurements under ignored
 
 Run the streaming example and benchmark with `scripts/stream_client.py`. The
 client reports first audio and generated-audio-to-wall-time ratio. It is a
-smoke metric; a fuller harness should compare direct and wrapped paths and
-detect playback buffer underruns under sustained generation.
+smoke metric. `scripts/benchmark_stream.py` compares direct and wrapped paths,
+records first audio, throughput and chunk gaps in ignored `evidence/local/`.
+It does not yet infer actual playback buffer underruns; measure those with the
+target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; nine local fake-backend tests pass. They cover Cortex
+- Python package compiles; eleven local fake-backend tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
-  Wyoming legacy and incremental early audio, bounded admission and input limits.
+  Wyoming legacy and incremental early audio, bounded admission, input limits,
+  terminal backend errors and abrupt backend disconnects.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.
 - Pinned Q4 GGUF plus official codec downloaded and SHA-256 verified (five files).
@@ -47,7 +50,15 @@ detect playback buffer underruns under sustained generation.
   Saved synthetic voice `cpu_smoke_voice` encoded from a generated 1.28 s WAV
   and successfully streamed a further 38,400 bytes through the Cortex API.
   These timings are CPU compatibility evidence, not GPU performance evidence.
+- The direct-versus-wrapper benchmark harness completed one Q4 CPU request per
+  path with the same saved synthetic voice and 0.72 s of audio. Direct/client
+  TTFA was 4.268 s and wrapper/client TTFA 4.251 s; each produced 34,560 PCM
+  bytes. One sequential CPU sample is too weak to estimate wrapper p95 overhead.
 - Real GPU model, Whisper coexistence, listening, soak, and physical playback
   remain pending and must not be represented as passed.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
+- Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:
+  backend `ghcr.io/sorilo/cortex-tts-backend@sha256:953f6229d3cbb94fb5d2bb69a672a8e7baa64b8f191ec03b5fccdc43ba768896`;
+  wrapper `ghcr.io/sorilo/cortex-tts-wrapper@sha256:908eea62ba2a0a33fde1e1eaf8be695707072923119c34d3bb38922fd43ab47d`.
+  Those images are packaged; the GPU behavior remains unmeasured.

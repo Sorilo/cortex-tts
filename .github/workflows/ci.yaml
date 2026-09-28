@@ -19,3 +19,10 @@ jobs:
           BREEZE_VOICES_DIR: /tmp/cortex-tts-voices
           BREEZE_GPU_DEVICE: '0'
           CORTEX_TTS_TOKEN: ci-placeholder
+      - run: docker compose -f compose.release.yaml -f compose.stt-bench.yaml config -q
+        env:
+          BREEZE_MODEL_DIR: /tmp/cortex-tts-model
+          BREEZE_VOICES_DIR: /tmp/cortex-tts-voices
+          BREEZE_GPU_DEVICE: '0'
+          CORTEX_TTS_TOKEN: ci-placeholder
+          STT_BENCH_MODEL_DIR: /tmp/cortex-tts-stt-model

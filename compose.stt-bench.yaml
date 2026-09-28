@@ -1,0 +1,27 @@
+# Optional isolated GPU STT co-residency test. Add only after a safe GPU window.
+services:
+  whisper-bench:
+    image: lscr.io/linuxserver/faster-whisper@sha256:009c9cf9cc05e213979c7de4e93867df8d0a5c32ad4920b63080c0e8a8e6f265
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${BREEZE_GPU_DEVICE:?set GPU UUID or index}"]
+              capabilities: [gpu]
+    environment:
+      PUID: '1000'
+      PGID: '1000'
+      TZ: Etc/UTC
+      LOCAL_ONLY: 'true'
+      WHISPER_MODEL: /config/${STT_BENCH_MODEL:-base.en}
+      WHISPER_LANG: en
+      WHISPER_BEAM: '1'
+      NVIDIA_VISIBLE_DEVICES: ${BREEZE_GPU_DEVICE:?set GPU UUID or index}
+    volumes:
+      - ${STT_BENCH_MODEL_DIR:?set isolated STT model directory}:/config:ro
+    networks: [tts-internal]
+    mem_limit: 4g
+    cpus: 2
+    pids_limit: 256
+    security_opt: [no-new-privileges:true]

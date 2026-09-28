@@ -37,6 +37,12 @@ async def services():
                     if data["type"] == "start":
                         await ws.send_json({"type": "started"})
                     elif data["type"] == "text":
+                        if data["text"] == "backend-error":
+                            await ws.send_json({"type": "error", "message": "synthetic backend failure"})
+                            break
+                        if data["text"] == "backend-drop":
+                            await ws.close()
+                            break
                         await ws.send_bytes(b"\x01\x00" * 100)
                     elif data["type"] == "end":
                         complete_task = asyncio.create_task(finish())
@@ -225,3 +231,23 @@ async def test_cancel_discards_pending_audio_and_frees_slot(services):
             assert (await next_ws.receive()).type == aiohttp.WSMsgType.BINARY
             done_gate.set()
             assert (await next_ws.receive_json())["type"] == "done"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("text", ["backend-error", "backend-drop"])
+async def test_backend_failure_is_terminal_and_releases_slot(services, text):
+    base, _, disconnected, engine = services
+    async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
+        async with client.ws_connect(base + "/v1/speech/stream") as ws:
+            await ws.receive_json()
+            await ws.send_json({"type": "start"})
+            await ws.send_json({"type": "text", "text": text})
+            await ws.send_json({"type": "end"})
+            assert (await ws.receive_json())["type"] == "started"
+            assert (await ws.receive_json())["type"] == "error"
+        await asyncio.wait_for(disconnected.wait(), 1)
+        for _ in range(20):
+            if not engine.admission.lock.locked():
+                break
+            await asyncio.sleep(0.01)
+        assert not engine.admission.lock.locked()

@@ -12,7 +12,7 @@ owns bounded admission, protocol adaptation and session lifetime. Vulkan is
 the initial backend because upstream reports it faster than CUDA for this
 implementation's small per-frame graphs.
 
-Independent evidence: nine fake-backend/transport tests; Compose config;
+Independent evidence: eleven fake-backend/transport tests; Compose config;
 wrapper and pinned Vulkan backend builds; runtime `ldd`; SHA-256 verified Q4
 and codec files; CPU-only real-Q4 HTTP/Cortex/Wyoming streaming and synthetic
 saved-voice cloning. See docs/VALIDATION.md for measured CPU timings.
@@ -27,3 +27,8 @@ GitHub repository: https://github.com/Sorilo/cortex-tts. First pushed commit
 The first alpha image workflow failed before build because GHCR paths had a
 mixed-case owner; the path is corrected for alpha.2. GPU validation is still
 pending.
+
+Alpha.2 was published successfully from `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`.
+Backend digest: `sha256:953f6229d3cbb94fb5d2bb69a672a8e7baa64b8f191ec03b5fccdc43ba768896`.
+Wrapper digest: `sha256:908eea62ba2a0a33fde1e1eaf8be695707072923119c34d3bb38922fd43ab47d`.
+The digest-pinned release Compose file is separate from the local-build stack.

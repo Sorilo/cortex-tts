@@ -1,0 +1,13 @@
+.env
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+models/
+voices/
+*.gguf
+*.safetensors
+*.wav
+*.breeze
+evidence/local/

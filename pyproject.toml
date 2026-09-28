@@ -1,0 +1,20 @@
+[project]
+name = "cortex-tts"
+version = "0.1.0"
+description = "Streaming Breeze TTS service for Wyoming and Cortex"
+requires-python = ">=3.11"
+dependencies = ["aiohttp>=3.10,<4", "wyoming>=1.5,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "pytest-asyncio>=0.24,<2"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cortex_tts*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

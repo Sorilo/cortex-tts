@@ -55,6 +55,15 @@ The server returns `ready` with `version:1`, `turn_id`, `sample_rate:24000`,
 | `cancel` | none | aborts current generation and queued text |
 | `end` | optional `text` | finishes buffered text and reports `done` |
 
+Each `text`, `flush`, or `end` message may add at most 2,000 characters, and
+the whole session may add at most 12,000 characters across those messages.
+Wyoming legacy synthesis and streaming chunks follow the same limits.
+Exceeding either limit ends the current request with a protocol error and
+releases its backend session; start a new request for a separate reply.
+`voice_id`, `seed`, and `cfg_scale` are chosen at `start` and cannot be updated
+within that session. Only `instruction` changes delivery mid-session, from the
+next piece rather than retroactively changing audio already being spoken.
+
 `text` chunks are appended literally; a truly incremental caller must retain
 spaces between words and sentences. The pinned Breeze backend drains a
 completed sentence when each `text` message arrives. If Core has already

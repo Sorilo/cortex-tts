@@ -18,6 +18,7 @@ class Settings:
     queue_limit: int = 2
     queue_timeout: float = 2.0
     max_text_chars: int = 2000
+    max_total_text_chars: int = 12000
     max_session_seconds: float = 120.0
     warmup: bool = True
 

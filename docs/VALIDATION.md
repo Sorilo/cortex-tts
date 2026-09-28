@@ -44,6 +44,13 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- Cortex and Wyoming now cap cumulative per-session text at 12,000 characters
+  in addition to the 2,000-character per-message limit. Tests verify that a
+  multi-frame Cortex overflow yields one terminal protocol error, Wyoming
+  streaming overflow aborts its active backend, overlong legacy Wyoming input
+  is rejected before admission, and both transports accept a fresh request
+  afterward. The 40-test local suite passes. Published-image behavior for
+  this change remains to be checked before changing the release digest.
 - A local blind A/B/C review page was generated from the twelve existing
   Q4/Q6/Q8 level-matched samples. The generator verifies the manifest SHA-256
   for every input and copies WAV bytes unchanged; a separate ignored answer

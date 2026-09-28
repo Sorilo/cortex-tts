@@ -87,6 +87,7 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
         started = False
         finished = False
         input_ended = False
+        total_text_chars = 0
         first_audio = False
         begun = time.monotonic()
         send_task: asyncio.Task | None = None
@@ -100,7 +101,7 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
                                         "sample_rate": 24000, "format": "pcm_s16le", "channels": 1})
 
                     async def forward_input() -> None:
-                        nonlocal started, input_ended
+                        nonlocal started, input_ended, total_text_chars
                         async for msg in ws:
                             if msg.type != WSMsgType.TEXT:
                                 if msg.type in {WSMsgType.CLOSE, WSMsgType.CLOSED, WSMsgType.ERROR}:
@@ -112,6 +113,10 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
                                     raise ProtocolError("only cancel is allowed after end")
                             except ValueError as exc:
                                 raise ProtocolError("invalid JSON input") from exc
+                            if value["type"] in {"text", "flush", "end"}:
+                                total_text_chars += len(value.get("text", ""))
+                                if total_text_chars > settings.max_total_text_chars:
+                                    raise ProtocolError("session text exceeds limit")
                             if value["type"] == "start":
                                 started = True
                                 value = {**value}

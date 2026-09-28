@@ -347,3 +347,12 @@ recorded hash, copies audio bytes unchanged under ignored
 `evidence/local/listening-pack-blind/`, and writes an A/B/C browser page plus
 a separate answer key. The local page was generated from all twelve existing
 samples; owner quality judgment and physical playback are still outstanding.
+
+Added a 12,000-character cumulative session text budget to Cortex and Wyoming
+on top of their existing 2,000-character per-message bound. Previously many
+small chunks could enqueue unlimited text; Wyoming legacy synthesis also
+skipped the per-message check. Overflow now ends that request, closes the
+backend session, and permits a new turn. Focused recovery tests pass and the
+full local suite has 40 passing tests. Documented fixed start controls versus
+next-piece `instruction` updates. Version advanced to alpha.12; release image
+pin remains alpha.11 pending publication and isolated smoke.

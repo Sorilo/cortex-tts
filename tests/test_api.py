@@ -384,6 +384,39 @@ async def test_wyoming_incremental_text_before_stop(services):
 
 
 @pytest.mark.asyncio
+async def test_wyoming_session_text_budget_aborts_and_recovers(services):
+    _, done_gate, disconnected, engine = services
+    wyoming = await start_wyoming(engine, Settings(**{**engine.settings.__dict__,
+                                                       "wyoming_host": "127.0.0.1", "wyoming_port": 0,
+                                                       "max_total_text_chars": 8}))
+    try:
+        port = wyoming._server.sockets[0].getsockname()[1]
+        async with AsyncTcpClient("127.0.0.1", port) as client:
+            await client.write_event(Synthesize(text="Too long.").event())
+            error = await asyncio.wait_for(client.read_event(), 1)
+            assert Error.is_type(error.type)
+            assert Error.from_event(error).code == "protocol"
+            assert not engine.admission.lock.locked()
+            await client.write_event(SynthesizeStart().event())
+            await client.write_event(SynthesizeChunk(text="Hello.").event())
+            assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert AudioChunk.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            await client.write_event(SynthesizeChunk(text="More.").event())
+            error = await asyncio.wait_for(client.read_event(), 1)
+            assert Error.is_type(error.type)
+            assert Error.from_event(error).code == "protocol"
+            await asyncio.wait_for(disconnected.wait(), 1)
+            assert not engine.admission.lock.locked()
+            await client.write_event(Synthesize(text="Hi.").event())
+            assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert AudioChunk.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            done_gate.set()
+            assert AudioStop.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+    finally:
+        await wyoming.stop()
+
+
+@pytest.mark.asyncio
 async def test_wyoming_stream_without_stop_times_out_and_releases_backend(services):
     _, _, disconnected, engine = services
     wyoming = await start_wyoming(engine, Settings(**{**engine.settings.__dict__,
@@ -571,6 +604,39 @@ async def test_backend_recovery_warmup_gates_readiness_and_new_turns(services):
     finally:
         watcher.cancel()
         await asyncio.gather(watcher, return_exceptions=True)
+
+
+@pytest.mark.asyncio
+async def test_cortex_session_text_budget_is_terminal_and_recovers(services):
+    base, done_gate, disconnected, engine = services
+    async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
+        async with client.ws_connect(base + "/v1/speech/stream") as ws:
+            ready = await ws.receive_json()
+            await ws.send_json({"type": "start"})
+            for _ in range(7):
+                await ws.send_json({"type": "text", "text": "x" * 2000})
+            while True:
+                event = await asyncio.wait_for(ws.receive(), 2)
+                if event.type == aiohttp.WSMsgType.TEXT:
+                    payload = json.loads(event.data)
+                    if payload["type"] == "error":
+                        assert payload["code"] == "protocol"
+                        assert payload["turn_id"] == ready["turn_id"]
+                        break
+                else:
+                    assert event.type == aiohttp.WSMsgType.BINARY
+            assert (await ws.receive()).type == aiohttp.WSMsgType.CLOSE
+        await asyncio.wait_for(disconnected.wait(), 1)
+        assert not engine.admission.lock.locked()
+        async with client.ws_connect(base + "/v1/speech/stream") as next_ws:
+            assert (await next_ws.receive_json())["type"] == "ready"
+            await next_ws.send_json({"type": "start"})
+            await next_ws.send_json({"type": "text", "text": "Fresh."})
+            await next_ws.send_json({"type": "end"})
+            assert (await next_ws.receive_json())["type"] == "started"
+            assert (await next_ws.receive()).type == aiohttp.WSMsgType.BINARY
+            done_gate.set()
+            assert (await next_ws.receive_json())["type"] == "done"
 
 
 @pytest.mark.asyncio

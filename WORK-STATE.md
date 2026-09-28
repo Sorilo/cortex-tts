@@ -12,7 +12,7 @@ owns bounded admission, protocol adaptation and session lifetime. Vulkan is
 the initial backend because upstream reports it faster than CUDA for this
 implementation's small per-frame graphs.
 
-Independent evidence: 17 fake-backend/transport tests; Compose config;
+Independent evidence: 20 fake-backend/transport tests; Compose config;
 wrapper and pinned Vulkan backend builds; runtime `ldd`; SHA-256 verified Q4
 and codec files; CPU-only real-Q4 HTTP/Cortex/Wyoming streaming and synthetic
 saved-voice cloning. See docs/VALIDATION.md for measured CPU timings.
@@ -74,3 +74,8 @@ Whisper base.en resident completed over 257.2 s, emitting 523.2 s of PCM.
 Median/p95 TTFA was 187/196 ms; after the first corpus cycle, all turns were
 at least 1.91× real time. All three isolated containers had zero restarts.
 This supports sustained synthetic throughput, not physical playback quality.
+
+The Cortex wrapper now classifies malformed client input as one terminal
+`code:protocol` event rather than sending a second backend error. Three new
+regressions verify slot recovery. The current alpha.6 wrapper image predates
+this change; publish and pin a fresh wrapper image before release use.

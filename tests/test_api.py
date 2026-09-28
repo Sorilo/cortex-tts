@@ -341,6 +341,33 @@ async def test_backend_failure_is_terminal_and_releases_slot(services, text):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("payload", ["not-json", '{"type":"text","text":"too early"}',
+                                      '{"type":"unknown"}'])
+async def test_malformed_client_stream_has_one_protocol_error_and_recovers(services, payload):
+    base, done_gate, disconnected, engine = services
+    async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
+        async with client.ws_connect(base + "/v1/speech/stream") as ws:
+            ready = await ws.receive_json()
+            await ws.send_str(payload)
+            event = await ws.receive_json()
+            assert event["type"] == "error" and event["code"] == "protocol"
+            assert event["turn_id"] == ready["turn_id"]
+            assert (await ws.receive()).type == aiohttp.WSMsgType.CLOSE
+        await asyncio.wait_for(disconnected.wait(), 1)
+        assert not engine.admission.lock.locked()
+        assert engine.metrics.failures == 1
+        async with client.ws_connect(base + "/v1/speech/stream") as next_ws:
+            assert (await next_ws.receive_json())["type"] == "ready"
+            await next_ws.send_json({"type": "start"})
+            await next_ws.send_json({"type": "text", "text": "Recovered."})
+            await next_ws.send_json({"type": "end"})
+            assert (await next_ws.receive_json())["type"] == "started"
+            assert (await next_ws.receive()).type == aiohttp.WSMsgType.BINARY
+            done_gate.set()
+            assert (await next_ws.receive_json())["type"] == "done"
+
+
+@pytest.mark.asyncio
 async def test_busy_stream_is_rejected_without_interrupting_active_audio(services):
     base, _, disconnected, engine = services
     engine.admission.limit = 0

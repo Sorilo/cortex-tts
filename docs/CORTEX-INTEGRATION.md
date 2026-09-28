@@ -24,7 +24,9 @@ The server forwards Breeze's `started`, `speaking`, `queued`,
 Binary frames are playable PCM; a client should start playback on the first
 binary frame rather than wait for `done`. An error or closed socket ends the
 stream. The server admits one GPU synthesis session and a bounded waiting
-queue. A busy request gets an `error` event with `code:busy`.
+queue. A busy request gets an `error` event with `code:busy`. Invalid JSON,
+out-of-order input, and unsupported client messages get one terminal `error`
+event with `code:protocol`; backend and transport failures use `code:backend`.
 
 Authenticated `GET /v1/voices` lists saved voice IDs. `POST /v1/voices`
 accepts multipart `name`, `ref_audio` WAV, and exact `ref_text`. The backend

@@ -100,9 +100,8 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
                                 value = validate_client_message(json.loads(msg.data), settings, started)
                                 if input_ended and value["type"] != "cancel":
                                     raise ProtocolError("only cancel is allowed after end")
-                            except (ValueError, ProtocolError) as exc:
-                                await ws.send_json({"type": "error", "message": str(exc), "turn_id": turn_id})
-                                break
+                            except ValueError as exc:
+                                raise ProtocolError("invalid JSON input") from exc
                             if value["type"] == "start":
                                 started = True
                                 value = {**value}
@@ -165,8 +164,12 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
                                 break
         except Busy as exc:
             await ws.send_json({"type": "error", "code": "busy", "message": str(exc), "turn_id": turn_id})
-        except (ProtocolError, OSError, TimeoutError, ConnectionError,
-                ValueError, aiohttp.ClientError) as exc:
+        except ProtocolError as exc:
+            engine.metrics.failures += 1
+            if not ws.closed:
+                await ws.send_json({"type": "error", "code": "protocol", "message": str(exc), "turn_id": turn_id})
+        except (OSError, TimeoutError, ConnectionError, ValueError,
+                aiohttp.ClientError) as exc:
             engine.metrics.failures += 1
             if not ws.closed:
                 await ws.send_json({"type": "error", "code": "backend", "message": str(exc), "turn_id": turn_id})

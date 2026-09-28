@@ -32,7 +32,7 @@ services:
     networks: [tts-internal]
     restart: unless-stopped
   wrapper:
-    image: ghcr.io/sorilo/cortex-tts-wrapper@sha256:8074f07a6a3a7daf105407c7bd70bcdb867a34a04c9c7941339a100c0dcfdd43
+    image: ghcr.io/sorilo/cortex-tts-wrapper@sha256:6d9255a48a8ccee02c32f4a28f20a23456e772eae0fece2059457b97d2be05c3
     environment:
       BREEZE_HTTP: http://breeze-backend:8080
       BREEZE_WS: ws://breeze-backend:8081

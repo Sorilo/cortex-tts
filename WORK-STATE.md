@@ -356,3 +356,13 @@ backend session, and permits a new turn. Focused recovery tests pass and the
 full local suite has 40 passing tests. Documented fixed start controls versus
 next-piece `instruction` updates. Version advanced to alpha.12; release image
 pin remains alpha.11 pending publication and isolated smoke.
+
+Alpha.12 wrapper OCI index
+`sha256:6d9255a48a8ccee02c32f4a28f20a23456e772eae0fece2059457b97d2be05c3`
+passed an isolated published-image overflow/fresh-turn smoke with the tested
+alpha.8 backend on dev RTX 3080. Seven 2,000-character frames yielded one
+terminal protocol error and no PCM; a fresh turn returned 2.08 s PCM with
+first packet at 312 ms. The wrapper was healthy; both containers had zero
+restarts. Updated release pin, rollback and validation records. The temporary
+project and token were removed. Alpha.12 image publication succeeded;
+release-pin CI still needs confirmation before declaring this pair promoted.

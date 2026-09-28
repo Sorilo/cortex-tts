@@ -49,8 +49,22 @@ target playback client.
   multi-frame Cortex overflow yields one terminal protocol error, Wyoming
   streaming overflow aborts its active backend, overlong legacy Wyoming input
   is rejected before admission, and both transports accept a fresh request
-  afterward. The 40-test local suite passes. Published-image behavior for
-  this change remains to be checked before changing the release digest.
+  afterward. The 40-test local suite, [alpha.12 source CI](https://github.com/Sorilo/cortex-tts/actions/runs/36406425544),
+  and [image publication](https://github.com/Sorilo/cortex-tts/actions/runs/36406425348)
+  passed. An isolated
+  published alpha.8-backend/alpha.12-wrapper Q4 smoke on dev RTX 3080 sent
+  seven 2,000-character frames. The seventh produced one terminal
+  `code:protocol` error with zero PCM from that rejected turn. A fresh turn
+  returned 99,840 bytes (2.08 s) PCM, first packet at 312 ms. Metrics showed
+  two requests, one expected failure, no active/queued request; the wrapper was
+  healthy and both containers had zero restarts. Backend logs identified
+  Vulkan0. The alpha.12 wrapper OCI index is
+  `sha256:6d9255a48a8ccee02c32f4a28f20a23456e772eae0fece2059457b97d2be05c3`
+  from source `9b7fea88907b83bd3ff688be976982d156dd3cba`.
+  Ignored detailed evidence is `evidence/local/alpha12-published-budget-smoke.json`.
+  The isolated containers, network, token and voice directory were removed.
+  This is a synthetic protocol/recovery smoke, not a latency distribution or
+  physical playback result.
 - A local blind A/B/C review page was generated from the twelve existing
   Q4/Q6/Q8 level-matched samples. The generator verifies the manifest SHA-256
   for every input and copies WAV bytes unchanged; a separate ignored answer

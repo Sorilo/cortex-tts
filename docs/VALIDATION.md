@@ -125,7 +125,15 @@ target playback client.
   One published cancel acknowledged in 215 ms with no subsequent audio.
   The alpha.5 wrapper counted a client closing after `cancelled` as a failure;
   the event is now terminal and a regression test checks the failure count.
-  Republish the wrapper before pinning that fix.
+- The final release Compose pins the verified portable alpha.5 backend OCI
+  index `sha256:0ace2780f6a5b4f47fe4ca5b977db83c09e51bdd38f4c9a5a1f6df023262e65e`
+  and alpha.6 wrapper index
+  `sha256:39ed6a01f908de63554ab37bc37c3862ec22b929ef860a92a47bfa5cf2699144`.
+  This exact pair passed isolated Compose readiness on the RTX 3080. A published
+  cancellation acknowledged in 213 ms with zero post-cancel audio; metrics
+  showed `cancelled:1`, `failures:0`, `active:false`, `queued:0`. A fresh next
+  turn produced 188,160 PCM bytes and completed normally. This verifies the
+  cancellation fix in the published wrapper, not only in the local tests.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

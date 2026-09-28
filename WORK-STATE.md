@@ -26,8 +26,9 @@ Short+long startup warmup hides common first-request shader compilation behind
 readiness (20.0 s on this RTX 3080). New text shapes can still cause a slower
 first response. See docs/VALIDATION.md for sample sizes and caveats.
 
-Remaining: human listening/quantization quality judgment, sustained soak,
-playback underrun measurement and physical integration. Existing `cortex-dev`
+Remaining: human listening/quantization quality judgment, long-duration
+diverse-text soak, real playback underrun measurement and physical integration.
+Existing `cortex-dev`
 containers must remain untouched. Stop only our isolated GPU test resources.
 
 GitHub repository: https://github.com/Sorilo/cortex-tts. First pushed commit
@@ -49,6 +50,9 @@ Alpha.5 published backend and wrapper passed an isolated release Compose smoke
 and a 100-request Q4 soak alongside 150 synthetic Whisper base.en requests;
 observed combined peak was 3,618 MiB. See docs/VALIDATION.md. One cancellation
 metric counted the client closing after `cancelled` as a failure; the Cortex
-stream now treats `cancelled` as terminal and has a regression test. Publish
-the next wrapper image and pin its digest while retaining the verified
-portable backend.
+stream now treats `cancelled` as terminal and has a regression test. The
+alpha.6 wrapper is published and the final release Compose pins its immutable
+digest with the verified alpha.5 backend. That exact pair passed readiness,
+cancelled in 213 ms with no stale audio, reported `failures:0`, and completed
+a fresh next turn. Final source and image checks are recorded in
+docs/VALIDATION.md.

@@ -364,5 +364,6 @@ alpha.8 backend on dev RTX 3080. Seven 2,000-character frames yielded one
 terminal protocol error and no PCM; a fresh turn returned 2.08 s PCM with
 first packet at 312 ms. The wrapper was healthy; both containers had zero
 restarts. Updated release pin, rollback and validation records. The temporary
-project and token were removed. Alpha.12 image publication succeeded;
-release-pin CI still needs confirmation before declaring this pair promoted.
+project and token were removed. Alpha.12 image publication succeeded, and
+release-pin CI passed for `9d8a3c077e070b51865bc82b778b1e6fc4e453d5`
+(GitHub Actions run `36406916923`).

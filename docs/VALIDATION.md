@@ -222,6 +222,21 @@ target playback client.
   benchmarks/generic_prewarm_experiment.json` once, followed by the default
   corpus once, against a newly started isolated release stack. Results remain
   under ignored `evidence/local/`.
+- Message boundaries were then isolated with the unchanged published images.
+  The pinned backend drains complete sentences as each `text` message arrives;
+  a single message containing several sentences can become one synthesis piece
+  below its length budget. On two independent fresh-backend eight-case runs,
+  `scripts/benchmark_corpus.py --combine-pieces` joined each case's available
+  sentences with spaces and sent one `text` message. Both runs had zero
+  idealized zero-buffer underruns, first-packet median/p95 190/442 and
+  187/437 ms, and minimum request speeds 1.48× and 1.54× real time. The
+  comparable split-message first-shape runs each had two underrun requests.
+  The combined runs still had a largest inter-packet gap around 2.77 s on the
+  long reply, but previously delivered PCM covered that gap in the model.
+  One cold single-message weather request separately had a 0.669 s largest
+  gap and no modeled underrun. These results support sending an already-complete
+  Core-authorized response as one message. They do not prove arbitrary
+  incremental speech, device playback or naturalness is free of gaps.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

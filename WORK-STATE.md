@@ -102,3 +102,15 @@ zero-buffer underrun requests). The exact synthetic prewarm corpus is tracked
 under `benchmarks/`; local measurements stay ignored. Do not add more generic
 startup phrases without evidence of generalization; current service-side
 first-shape continuity remains unresolved.
+
+Message-boundary diagnostic: the pinned backend drains completed sentences on
+each `text` event. The same complete weather wording sent in one message after
+a fresh start had no modeled underrun; split-message weather had one in the
+cold corpus. Added `--combine-pieces` to the benchmark. Two independent fresh
+eight-case combined-message Q4 runs had zero modeled underruns, first-packet
+p95 442/437 ms and minimum speed 1.48×/1.54×. Two split-message cold runs
+had two underrun requests each. The integration guide now tells Cortex to
+send already-complete Core-authorized speech in one `text` message, preserving
+literal incremental chunks only when speech truly arrives that way. Long-reply
+inter-packet gaps still warrant real playback tests. No runtime coalescing or
+extra startup warmup was added.

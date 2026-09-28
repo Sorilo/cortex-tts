@@ -63,6 +63,9 @@ The first PCM packet is available before synthesis completes, but immediate
 device playback can underrun on a first-seen text shape. Buffer by measured
 PCM fill level and validate audible latency and rebuffers on the target device;
 see [docs/CORTEX-INTEGRATION.md](docs/CORTEX-INTEGRATION.md).
+When Core already has a complete authorized reply, send it as one `text`
+message rather than artificially splitting it into sentences. The incremental
+API remains available when authorized text genuinely arrives in pieces.
 
 Saved cloned voices are created via authenticated `POST /v1/voices` with
 `name`, `ref_audio` WAV, and exact `ref_text`. A saved voice ID is selectable in

@@ -19,6 +19,15 @@ The server returns `ready` with `version:1`, `turn_id`, `sample_rate:24000`,
 | `cancel` | none | aborts current generation and queued text |
 | `end` | optional `text` | finishes buffered text and reports `done` |
 
+`text` chunks are appended literally; a truly incremental caller must retain
+spaces between words and sentences. The pinned Breeze backend drains a
+completed sentence when each `text` message arrives. If Core has already
+authorized a complete `speech_text` response, send that response in one
+`text` message followed by `end`. Splitting an already-complete response into
+artificial sentence messages can force separate synthesis pieces and create
+avoidable first-shape gaps. Keep sending genuine incremental text as it becomes
+authoritative; `flush` is for an unfinished phrase that must be spoken now.
+
 The server forwards Breeze's `started`, `speaking`, `queued`,
 `instruction_set`, `cancelled`, `done`, and `error` events with `turn_id`.
 Binary frames are playable PCM; feed them into a playback queue as they arrive,
@@ -49,9 +58,10 @@ counts and timing without utterance text or audio.
    for deterministic tests. Do not bypass Core speech formatting.
 2. In the voice-facing HA adapter at
    `cortex-deploy/config/custom_components/cortex_assist/__init__.py`, use the
-   authoritative speech returned by Core. Arrange client playback to consume
-   PCM frames as they arrive into a measured playback queue; a complete WAV
-   response defeats streaming TTFA.
+   authoritative speech returned by Core. Send already-complete Core speech in
+   one `text` message; use literal incremental chunks only if Core authorizes
+   them as they arrive. Arrange client playback to consume PCM frames into a
+   measured queue; a complete WAV response defeats streaming TTFA.
 3. Correlate the Core turn ID with the TTS stream at the caller, and propagate
    playback stop to TTS `cancel`/disconnect. Route any action interruption
    through Core's existing interrupt API separately.

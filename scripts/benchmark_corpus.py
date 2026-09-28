@@ -21,6 +21,8 @@ async def benchmark(args: argparse.Namespace) -> dict:
             name, pieces = case["id"], case["pieces"]
             if not isinstance(name, str) or not isinstance(pieces, list) or not pieces:
                 raise ValueError("each case needs an id and nonempty pieces")
+            if args.combine_pieces:
+                pieces = [" ".join(piece.strip() for piece in pieces)]
             output = args.output_dir / f"{name}-{iteration + 1}.wav"
             result = await run(SimpleNamespace(
                 url=args.url, voice=args.voice, instruction=args.instruction,
@@ -33,6 +35,7 @@ async def benchmark(args: argparse.Namespace) -> dict:
     speed = [row["generation_x_realtime"] for row in rows]
     summary = {
         "count": len(rows), "voice": args.voice, "instruction": args.instruction,
+        "combine_pieces": args.combine_pieces,
         "ttfa_median_s": statistics.median(ttfa),
         "ttfa_p95_s": ttfa[round((len(ttfa) - 1) * 0.95)],
         "minimum_generation_x_realtime": min(speed),
@@ -75,6 +78,8 @@ def main() -> None:
     parser.add_argument("--instruction", default="Speak clearly and naturally.")
     parser.add_argument("--piece-delay-ms", type=int, default=0)
     parser.add_argument("--flush-each", action="store_true")
+    parser.add_argument("--combine-pieces", action="store_true",
+                        help="Join each case's available text into one message with spaces")
     parser.add_argument("--timeout", type=float, default=120)
     args = parser.parse_args()
     if args.iterations < 1 or args.piece_delay_ms < 0 or args.timeout <= 0:

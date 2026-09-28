@@ -287,6 +287,26 @@ target playback client.
   Satellite playback or human-rated sound quality. Reproduction output is
   ignored under `evidence/local/corpus-published-alpha8-q4-cold-combined/`
   and `evidence/local/cancel-published-alpha8-q4-20.json`.
+- The same immutable alpha.8-backend/alpha.7-wrapper pair was then run with
+  the pinned isolated LinuxServer Wyoming Whisper `base.en` container actively
+  transcribing a repository-generated 3.92 s WAV. In one fresh eight-case Q4
+  combined-message corpus, first-PCM median/p95 was 145/157 ms, minimum
+  generation speed was 1.527× real time, and there were zero idealized
+  zero-buffer underrun requests. Whisper returned the expected transcript on
+  159/159 probes during that corpus; 137 GPU samples observed a 3,725 MiB
+  peak. In a separate 20-pair cancel-after-first-audio/fresh-turn run, cancel
+  median/p95/max was 130/155/163 ms, all 20 fresh turns completed, and the
+  benchmark asserted zero post-cancel PCM. Whisper transcribed 126/126 probes
+  during that run; 107 GPU samples observed a 3,697 MiB peak. Final wrapper
+  metrics counted 48 requests, 20 cancellations, zero failures and no active
+  or queued request. Backend, wrapper and Whisper had zero restarts; the
+  dedicated stack was removed afterward. The earlier isolated two-frame run
+  did observe a 345 ms cancellation outlier under active STT, so this new run
+  improves confidence but cannot establish a hard 250 ms bound. The playback
+  model excludes device scheduling and arbitrary text. Local evidence is in
+  `evidence/local/corpus-published-alpha8-q4-active-base/`,
+  `evidence/local/published-alpha8-active-base-summary.json`, and
+  `evidence/local/cancel-published-alpha8-q4-active-base-20.json`.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

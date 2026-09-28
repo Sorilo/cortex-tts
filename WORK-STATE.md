@@ -140,3 +140,13 @@ eight-case combined-message corpus (first PCM median/p95 124/303 ms, minimum
 No other Cortex deployment was changed. See docs/ROLLBACK.md for digest-pinned
 fallback. Human listening, physical Satellite playback and Core integration
 remain open gates; retain the active goal.
+
+The exact published pair also passed isolated active Whisper `base.en`
+coexistence: eight fresh combined-message Q4 turns had first-PCM median/p95
+145/157 ms, minimum 1.527× speed and zero modeled zero-buffer underrun
+requests while 159/159 synthetic clips were transcribed. Observed peak was
+3,725 MiB. A separate 20-pair cancel/recovery run under active STT had cancel
+median/p95/max 130/155/163 ms, 20/20 fresh turns and 126/126 STT probes;
+peak was 3,697 MiB. All three containers had zero restarts and the isolated
+stack was stopped. These results do not erase the earlier 345 ms active-STT
+cancel outlier or prove physical playback and human-rated quality.

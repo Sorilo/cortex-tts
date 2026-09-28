@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import time
+from collections import deque
 from collections.abc import AsyncIterator
 
 import aiohttp
@@ -127,7 +127,7 @@ class Metrics:
         self.failures = 0
         self.cancelled = 0
         self.audio_bytes = 0
-        self.first_audio_seconds: list[float] = []
+        self.first_audio_seconds: deque[float] = deque(maxlen=20)
 
     def snapshot(self, admission: Admission) -> dict:
         return {
@@ -135,7 +135,7 @@ class Metrics:
             "failures": self.failures,
             "cancelled": self.cancelled,
             "audio_bytes": self.audio_bytes,
-            "first_audio_seconds_recent": self.first_audio_seconds[-20:],
+            "first_audio_seconds_recent": list(self.first_audio_seconds),
             "active": admission.lock.locked(),
             "queued": admission.waiters,
         }

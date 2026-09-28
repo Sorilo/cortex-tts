@@ -324,3 +324,9 @@ coordinated design. Updated `docs/CORTEX-INTEGRATION.md` and
 `docs/VALIDATION.md`. No Satellite, HA, Pi or other Cortex repository was
 changed. Owner listening, the isolated HA pipeline, physical playback and
 barge-in remain open.
+
+Bounded the wrapper's first-audio timing history to its 20 published recent
+samples. Previously the list grew for every request over the service lifetime.
+Added a retention regression; 37 local tests pass. Version advanced to
+alpha.11 for a publishable wrapper build. The release Compose digest is still
+alpha.10 until the new image has been published and validated.

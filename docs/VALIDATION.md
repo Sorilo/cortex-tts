@@ -1,8 +1,8 @@
 # Validation status and required evidence
 
-The service has a local fake-backend protocol test suite. This is software
-evidence only. It does not establish a real model's TTFA, speed, quality,
-Vulkan operation, GPU co-residency, or physical Satellite playback.
+The service has fake-backend protocol tests and isolated RTX 3080 measurements.
+Synthetic speech and loopback clients establish transport and local performance;
+they do not establish human-rated audio quality or physical Satellite playback.
 
 ## Performance targets
 
@@ -37,13 +37,14 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; eleven local fake-backend tests pass. They cover Cortex
+- Python package compiles; 13 local fake-backend tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   terminal backend errors and abrupt backend disconnects.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.
-- Pinned Q4 GGUF plus official codec downloaded and SHA-256 verified (five files).
+- Pinned Q4, Q6 and Q8 GGUF files plus official codec downloaded and SHA-256
+  verified (seven files). Q4 is the deployment default.
 - Isolated CPU-only real-Q4 smoke: HTTP synthesis returned 30,720 bytes PCM;
   Cortex WebSocket delivered 61,440 bytes (1.28 s audio) with first audio at
   3.495 s and completion at 14.592 s. Wyoming delivered 30,720 bytes.
@@ -54,8 +55,53 @@ target playback client.
   path with the same saved synthetic voice and 0.72 s of audio. Direct/client
   TTFA was 4.268 s and wrapper/client TTFA 4.251 s; each produced 34,560 PCM
   bytes. One sequential CPU sample is too weak to estimate wrapper p95 overhead.
-- Real GPU model, Whisper coexistence, listening, soak, and physical playback
-  remain pending and must not be represented as passed.
+- On a 10 GiB RTX 3080 (NVIDIA driver 595.91.07), the original runtime image
+  silently selected CPU because the NVIDIA GLX Vulkan ICD lacked dependencies.
+  The corrected image uses the headless EGL ICD; backend logs identify `Vulkan0`
+  and `nvidia-smi` identifies the Breeze process. The original alpha.2 backend
+  image is **not GPU validated**; the corrected image requires a later tag.
+- Q4, 20 sequential warm short requests per path with the same saved synthetic
+  voice: direct TTFA median/p95 186/189 ms, wrapper 187/193 ms. Wrapper's median
+  TTFA exceeded direct by about 1 ms; this sequential experiment does not
+  establish p95 overhead under identical load. Every request completed above
+  2.0× real time. Observed peak Breeze-only memory was 2,888 MiB for this short
+  run, and 3,252 MiB during a longer reply. The first request after a cold
+  model restart incurred roughly 10–13 seconds of Vulkan compilation and was
+  excluded from warm distributions.
+- A longer 11.04-second reply reached first audio in about 202–215 ms after
+  its first shape-specific warmup and completed at about 2.1× real time. Largest
+  chunk gaps approached 0.99 s; a playback buffer/underrun test remains needed.
+- With pinned Wyoming Whisper `base.en` actively transcribing 20 synthetic
+  commands, ten Q4 requests had median/p95 TTFA 186/193 ms, minimum 2.08×
+  speed, and 3,678 MiB observed combined peak VRAM. With `distil-small.en`
+  actively transcribing 20 commands, corresponding figures were 187/194 ms,
+  2.07×, and 3,870 MiB. All 40 synthetic commands back-transcribed correctly.
+  Model files were copied into this repo's ignored model area and SHA-checked;
+  only the isolated `cortex-tts-stt-bench` container was operated.
+- With distil-small resident, Q6's nine warm saved-voice requests had median/
+  p95 TTFA 196/210 ms, minimum 2.0× speed and 3,996 MiB observed combined
+  peak VRAM. Q8's nine warm requests had 192/198 ms, 2.02× and 4,491 MiB.
+  Their first saved-voice request after default-voice warmup was excluded as a
+  separate shape warmup. Q4 retains the most memory headroom; these timings and
+  one Whisper back-transcription per quantization cannot rank perceived quality.
+- Q4 default voice's ten warm short requests had median/p95 TTFA 186/332 ms
+  and minimum 2.02× speed. A directed Q4 voice produced PCM above real time;
+  one subsequent warm directed request reached first audio in 361 ms. Saved
+  synthetic reference voice synthesis and voice registration were exercised,
+  but direction fidelity and clone similarity require listening.
+- One Q4 GPU cancellation acknowledged in 216 ms and delivered zero audio bytes
+  after the cancel request. This is one client-observed sample, not a p95.
+- Startup warmup first used only a short phrase: the wrapper ports stayed closed
+  for 13.2 s and the first user request after readiness reached audio in 384 ms.
+  A later, new long phrase then had two idealized zero-buffer underruns totaling
+  0.76 s; four repeats had none. The warmup now includes a representative long
+  phrase and took 20.0 s before readiness. Three requests for a *different*
+  long phrase then had zero idealized underruns; the first reached audio in
+  450 ms and ran at 1.37×, while subsequent ones started in 186–196 ms and
+  ran above 2×. This simulation assumes PCM playback starts exactly at the first
+  audio packet and does not include real device jitter or output buffering.
+- Human listening, sustained soak, playback underruns, far-field microphone
+  audio, and physical Satellite/Core integration remain pending.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

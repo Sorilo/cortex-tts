@@ -12,23 +12,32 @@ owns bounded admission, protocol adaptation and session lifetime. Vulkan is
 the initial backend because upstream reports it faster than CUDA for this
 implementation's small per-frame graphs.
 
-Independent evidence: eleven fake-backend/transport tests; Compose config;
+Independent evidence: 13 fake-backend/transport tests; Compose config;
 wrapper and pinned Vulkan backend builds; runtime `ldd`; SHA-256 verified Q4
 and codec files; CPU-only real-Q4 HTTP/Cortex/Wyoming streaming and synthetic
 saved-voice cloning. See docs/VALIDATION.md for measured CPU timings.
 
-Remaining: GPU performance/quality, Whisper coexistence, listening, soak and
-physical integration. Existing `cortex-dev` containers are active; a blank GPU
-compute-process snapshot is not exclusive access. Inspect current state before
-updating or running on GPU.
+Owner authorized an isolated GPU window. Q4, Q6 and Q8 now run on Vulkan0 of
+the dev RTX 3080; the runtime image selects NVIDIA's headless EGL ICD to avoid
+silent CPU fallback. Q4 warm short TTFA is about 0.19 s, more than 2× real-time
+for the tested saved voice, with about 2.9 GiB peak GPU use alone. Q4 plus
+active pinned Wyoming base.en or distil-small.en uses under 4 GiB observed peak.
+Short+long startup warmup hides common first-request shader compilation behind
+readiness (20.0 s on this RTX 3080). New text shapes can still cause a slower
+first response. See docs/VALIDATION.md for sample sizes and caveats.
+
+Remaining: human listening/quantization quality judgment, sustained soak,
+playback underrun measurement and physical integration. Existing `cortex-dev`
+containers must remain untouched. Stop only our isolated GPU test resources.
 
 GitHub repository: https://github.com/Sorilo/cortex-tts. First pushed commit
 `8f4291087b082a218452b7f743354d0dab17717d`; initial remote CI passed.
 The first alpha image workflow failed before build because GHCR paths had a
-mixed-case owner; the path is corrected for alpha.2. GPU validation is still
-pending.
+mixed-case owner; the path was corrected for alpha.2.
 
 Alpha.2 was published successfully from `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`.
 Backend digest: `sha256:953f6229d3cbb94fb5d2bb69a672a8e7baa64b8f191ec03b5fccdc43ba768896`.
 Wrapper digest: `sha256:908eea62ba2a0a33fde1e1eaf8be695707072923119c34d3bb38922fd43ab47d`.
 The digest-pinned release Compose file is separate from the local-build stack.
+Alpha.2's backend image predates the headless EGL fix and must be replaced by a
+new tagged build before the release Compose file is GPU ready.

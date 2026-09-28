@@ -39,6 +39,9 @@ async def measure(url: str, text: str, voice: str, instruction: str,
             gaps = []
             bytes_audio = 0
             chunks = 0
+            playback_end = None
+            underrun_count = 0
+            underrun_seconds = 0.0
             async for msg in ws:
                 now = time.monotonic()
                 if msg.type == aiohttp.WSMsgType.BINARY:
@@ -49,6 +52,15 @@ async def measure(url: str, text: str, voice: str, instruction: str,
                     if last_chunk is not None:
                         gaps.append(now - last_chunk)
                     last_chunk = now
+                    duration = len(msg.data) / 48000
+                    if playback_end is None:
+                        playback_end = now + duration
+                    elif now > playback_end:
+                        underrun_count += 1
+                        underrun_seconds += now - playback_end
+                        playback_end = now + duration
+                    else:
+                        playback_end += duration
                     bytes_audio += len(msg.data)
                     chunks += 1
                 elif msg.type == aiohttp.WSMsgType.TEXT:
@@ -66,6 +78,8 @@ async def measure(url: str, text: str, voice: str, instruction: str,
     return {"ttfa_s": first, "total_s": total, "audio_s": audio_seconds,
             "end_to_end_x_realtime": audio_seconds / total,
             "chunks": chunks, "largest_chunk_gap_s": max(gaps, default=0),
+            "ideal_zero_buffer_underruns": underrun_count,
+            "ideal_zero_buffer_underrun_s": underrun_seconds,
             "bytes": bytes_audio}
 
 
@@ -76,7 +90,9 @@ def summary(rows: list[dict]) -> dict:
     return {"requests": len(rows), "ttfa_median_s": statistics.median(ttfa),
             "ttfa_p95_s": percentile(ttfa, 0.95),
             "speed_min_x_realtime": min(speed),
-            "largest_gap_s": max(gaps), "results": rows}
+            "largest_gap_s": max(gaps),
+            "ideal_zero_buffer_underrun_requests": sum(bool(r["ideal_zero_buffer_underruns"]) for r in rows),
+            "results": rows}
 
 
 async def run(args: argparse.Namespace) -> dict:

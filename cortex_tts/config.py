@@ -19,6 +19,7 @@ class Settings:
     queue_timeout: float = 2.0
     max_text_chars: int = 2000
     max_session_seconds: float = 120.0
+    warmup: bool = True
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -34,4 +35,5 @@ class Settings:
             default_instruction=os.getenv("BREEZE_INSTRUCTION", cls.default_instruction),
             queue_limit=int(os.getenv("CORTEX_TTS_QUEUE_LIMIT", str(cls.queue_limit))),
             queue_timeout=float(os.getenv("CORTEX_TTS_QUEUE_TIMEOUT", str(cls.queue_timeout))),
+            warmup=os.getenv("CORTEX_TTS_WARMUP", "true").lower() not in {"0", "false", "no"},
         )

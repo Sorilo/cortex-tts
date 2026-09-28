@@ -12,13 +12,16 @@ RUN cmake -S /src -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release \
 
 FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates libvulkan1 libgomp1 && rm -rf /var/lib/apt/lists/*
+    ca-certificates libvulkan1 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+COPY docker/backend/nvidia-headless-icd.json /etc/vulkan/icd.d/nvidia-headless.json
 COPY --from=build /build/breeze-server /usr/local/bin/breeze-server
 COPY --from=build /build/third_party/ggml/src/libggml*.so* /usr/local/lib/
 COPY --from=build /build/third_party/ggml/src/ggml-vulkan/libggml-vulkan.so* /usr/local/lib/
 RUN ldconfig
 ENV NVIDIA_VISIBLE_DEVICES=all \
-    NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display \
+    VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia-headless.json
 EXPOSE 8080 8081
 ENTRYPOINT ["/usr/local/bin/breeze-server"]
 CMD ["/models/breeze-tts-2-q4_k.gguf", "--host", "0.0.0.0", "--port", "8080", "--ws-port", "8081", "--voices-dir", "/voices", "--chunk-first", "4", "--chunk-max", "25"]

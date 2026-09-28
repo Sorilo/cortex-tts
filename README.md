@@ -16,6 +16,8 @@ code licensing and adapted Fish attribution are described in [LICENSES.md](LICEN
 1. Create a Python environment and install: `pip install -e '.[dev]' huggingface_hub`.
 2. Run `python scripts/download_model.py`; it downloads about 3.2 GB of model
    assets into ignored `models/Breeze-TTS-2/` and checks every file.
+   `python scripts/download_model.py --quant q4 q6 q8` also fetches the pinned
+   comparison models; Q4 remains the deployment default.
 3. Copy `.env.example` to `.env`, set absolute model/voice directories and a
    strong random `CORTEX_TTS_TOKEN`.
    Set `BREEZE_GPU_DEVICE` to the intended GPU index or UUID from `nvidia-smi -L`.
@@ -30,11 +32,14 @@ The backend ports are private to the dedicated Docker network. For Home Assistan
 on another host, bind Wyoming to an appropriate trusted interface through this
 project's `CORTEX_TTS_BIND` setting and configure HA's Wyoming integration.
 
-The backend uses Vulkan. The NVIDIA container runtime must expose a Vulkan-capable
-driver and `graphics,display,compute,utility` driver capabilities. Run a separate
-container smoke test and check `/readyz`; `gpus: all` alone is not proof that
-Vulkan selected the intended 3080. No GPU allocation is attempted by ordinary
-Python tests.
+The backend uses Vulkan with an NVIDIA headless EGL ICD. The NVIDIA container
+runtime must expose a Vulkan-capable driver and `graphics,display,compute,utility`
+driver capabilities. Check the backend log for `backend: Vulkan0` and confirm
+its process owns GPU memory with `nvidia-smi`; `/readyz` alone cannot detect a
+CPU fallback. The wrapper warms short and long synthesis before opening its
+ports (set `CORTEX_TTS_WARMUP=false` only for diagnostics). A cold restart took
+about 20 seconds to become ready in the local RTX 3080 test. Ordinary Python tests
+do not allocate a GPU.
 
 The published alpha images are pinned by digest in `compose.release.yaml`.
 When a safe GPU window is available, run that file on its own for a separate

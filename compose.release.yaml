@@ -32,5 +32,4 @@ services:
     networks: [tts-internal]
     restart: unless-stopped
 networks:
-  tts-internal:
-    name: cortex-tts-release-internal
+  tts-internal: {}

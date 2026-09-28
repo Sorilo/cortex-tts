@@ -8,6 +8,7 @@ from aiohttp import web
 from cortex_tts.api import make_app
 from cortex_tts.config import Settings
 from cortex_tts.engine import Engine
+from cortex_tts.main import warm_backend
 from cortex_tts.wyoming_adapter import start_wyoming
 from wyoming.client import AsyncTcpClient
 from wyoming.info import Describe, Info
@@ -100,6 +101,15 @@ async def services():
 
 
 @pytest.mark.asyncio
+async def test_startup_warmup_finishes_before_accepting_clients(services):
+    _, done_gate, disconnected, engine = services
+    done_gate.set()
+    await asyncio.wait_for(warm_backend(engine, engine.settings), 1)
+    await asyncio.wait_for(disconnected.wait(), 1)
+    assert engine.metrics.requests == 0
+
+
+@pytest.mark.asyncio
 async def test_stream_yields_audio_before_completion(services):
     base, done_gate, _, engine = services
     async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
@@ -181,6 +191,28 @@ async def test_wyoming_incremental_text_before_stop(services):
             done_gate.set()
             assert AudioStop.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
             assert SynthesizeStopped.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+    finally:
+        await wyoming.stop()
+
+
+@pytest.mark.asyncio
+async def test_wyoming_disconnect_aborts_backend(services):
+    _, done_gate, disconnected, engine = services
+    wyoming = await start_wyoming(engine, Settings(**{**engine.settings.__dict__,
+                                                       "wyoming_host": "127.0.0.1", "wyoming_port": 0}))
+    try:
+        port = wyoming._server.sockets[0].getsockname()[1]
+        async with AsyncTcpClient("127.0.0.1", port) as client:
+            await client.write_event(Synthesize(text="Stop before completion.").event())
+            assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert AudioChunk.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+        await asyncio.wait_for(disconnected.wait(), 1)
+        for _ in range(20):
+            if not engine.admission.lock.locked():
+                break
+            await asyncio.sleep(0.01)
+        assert not engine.admission.lock.locked()
+        assert not done_gate.is_set()
     finally:
         await wyoming.stop()
 

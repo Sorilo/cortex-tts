@@ -17,6 +17,10 @@ async def run(args: argparse.Namespace) -> dict:
     started = time.monotonic()
     first_audio = None
     pcm = bytearray()
+    cancel_sent = None
+    cancel_ack_seconds = None
+    audio_bytes_after_cancel = 0
+    complete = False
     async with aiohttp.ClientSession(headers=headers) as client:
         async with client.ws_connect(args.url, heartbeat=20) as ws:
             ready = await ws.receive_json(timeout=10)
@@ -33,16 +37,23 @@ async def run(args: argparse.Namespace) -> dict:
                     if first_audio is None:
                         first_audio = time.monotonic() - started
                     pcm.extend(message.data)
-                    if args.cancel_after_audio_bytes and len(pcm) >= args.cancel_after_audio_bytes:
+                    if cancel_sent is not None:
+                        audio_bytes_after_cancel += len(message.data)
+                    if (args.cancel_after_audio_bytes and cancel_sent is None
+                            and len(pcm) >= args.cancel_after_audio_bytes):
+                        cancel_sent = time.monotonic()
                         await ws.send_json({"type": "cancel"})
-                        break
                 elif message.type == aiohttp.WSMsgType.TEXT:
                     event = json.loads(message.data)
                     if event.get("turn_id") != turn_id:
                         raise RuntimeError("turn correlation changed")
                     if event.get("type") == "error":
                         raise RuntimeError(str(event.get("message", "synthesis failed")))
+                    if event.get("type") == "cancelled":
+                        cancel_ack_seconds = time.monotonic() - cancel_sent if cancel_sent else None
+                        break
                     if event.get("type") == "done":
+                        complete = True
                         break
                 else:
                     break
@@ -58,7 +69,9 @@ async def run(args: argparse.Namespace) -> dict:
     return {"turn_id": turn_id, "first_audio_seconds": first_audio,
             "elapsed_seconds": elapsed, "audio_seconds": len(pcm) / 48000,
             "generation_x_realtime": (len(pcm) / 48000) / elapsed if elapsed else 0,
-            "bytes": len(pcm), "complete": not args.cancel_after_audio_bytes}
+            "bytes": len(pcm), "complete": complete,
+            "cancel_ack_seconds": cancel_ack_seconds,
+            "audio_bytes_after_cancel": audio_bytes_after_cancel}
 
 
 def main() -> None:

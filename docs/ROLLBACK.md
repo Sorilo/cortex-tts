@@ -3,19 +3,26 @@
 `compose.release.yaml` is a separate Cortex TTS project. Its current tested
 pair is the alpha.8 backend OCI index
 `sha256:c8b2411666e60b76665f694f3f8c9d6bcf01a20f845f6dee33a1bbf28cd46a67`
-and alpha.9 wrapper OCI index
-`sha256:4e72820923e0b85975b14f269992bc942e3b7257a94cc2244ed37356cf25652a`,
+and alpha.10 wrapper OCI index
+`sha256:192b16de727635df8ad1b194636df0b0641cb06995306f614816e12dfa9b91d9`,
 with `BREEZE_CHUNK_FIRST=2` and `BREEZE_CHUNK_MAX=25`. The two-frame setting
 was tested against the published alpha.8 image; read `docs/VALIDATION.md` for
 the observed cancellation and continuity tradeoff.
 
 To roll back only the wrapper, set `wrapper.image` in this project's
-`compose.release.yaml` to the previously verified alpha.7 index
+`compose.release.yaml` to the previously verified alpha.9 index
+`ghcr.io/sorilo/cortex-tts-wrapper@sha256:4e72820923e0b85975b14f269992bc942e3b7257a94cc2244ed37356cf25652a`.
+Leave the alpha.8 backend digest and two-frame chunk setting unchanged. That
+pair passed an isolated backend-restart, Wyoming and saved-voice smoke. It
+correctly reports backend stream failures, but `/readyz` can become healthy
+before post-restart synthesis is warm, causing an approximately 11-second
+first-PCM delay in the observed first recovered turn.
+
+The earlier alpha.7 wrapper index is
 `ghcr.io/sorilo/cortex-tts-wrapper@sha256:1afd3d6d1b45cad446e89404712212a9601432d3e1d734f71e5b1fc211280ce1`.
-Leave the alpha.8 backend digest and two-frame chunk setting unchanged. This
-exact alpha.8/alpha.7 pair passed isolated streaming, cancellation, Wyoming,
-active Whisper and expressive-mode checks. The older wrapper can misclassify
-an abruptly closed backend stream as a client protocol error.
+The alpha.8/alpha.7 pair passed streaming, cancellation, Wyoming, active
+Whisper and expressive-mode checks. Alpha.7 can misclassify an abruptly
+closed backend stream as a client protocol error.
 
 To return to the previous published backend baseline too, set
 `breeze-backend.image` in this project's `compose.release.yaml` to
@@ -36,7 +43,7 @@ this project only. Check `/readyz`, confirm the backend log reports `Vulkan0`,
 and synthesize a short Cortex or Wyoming test turn. The release project must
 remain separate from any active Cortex, Whisper, Satellite or Pi stack.
 
-To return to the current release, restore the alpha.8 backend and alpha.9
+To return to the current release, restore the alpha.8 backend and alpha.10
 wrapper digests above and `BREEZE_CHUNK_FIRST=2`, re-render Compose and repeat
 the dedicated-project readiness and speech smoke checks. No model assets or
 voice profiles need to be replaced for this image and chunk-setting rollback.

@@ -380,8 +380,22 @@ target playback client.
   The watcher cannot prove detection of a restart too brief to be observed by
   its one-second health poll, and the current sample sizes do not establish
   a recovery-time SLA. Evidence is ignored under
-  `evidence/local/local-wrapper-rewarm-{restart,idle-restart}.json`; this
-  locally built wrapper still needs published-image verification.
+  `evidence/local/local-wrapper-rewarm-{restart,idle-restart}.json`.
+- Alpha.10 source tests and image publication passed for commit
+  `64add88b8dfc1c503572aef848b15395704b8e84`. The current release
+  Compose pins the published alpha.10 wrapper OCI index
+  `sha256:192b16de727635df8ad1b194636df0b0641cb06995306f614816e12dfa9b91d9`
+  with the verified alpha.8 backend index above. In an isolated published-
+  pair RTX 3080 run, a midstream backend restart produced one correlated
+  terminal `code:backend` event and zero late PCM. A new request during
+  recovery received one `backend warming` error. Readiness remained 503
+  for 95 probes over 24.00 s, then a fresh 111,360-byte turn started PCM in
+  120 ms. An idle backend restart kept readiness 503 for 96 probes over
+  24.24 s; the next 111,360-byte turn also started PCM in 119 ms. Metrics
+  showed three accepted Cortex requests, one failure, no active or queued
+  request. The wrapper had zero restarts and the dedicated stack was removed.
+  These timings prove only the tested restart paths and local workload;
+  evidence is `evidence/local/published-alpha10-rewarm-smoke.json`.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

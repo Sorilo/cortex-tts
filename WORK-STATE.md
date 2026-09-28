@@ -195,5 +195,16 @@ the RTX 3080 with the immutable alpha.8 backend, one immediate midstream
 restart kept readiness unavailable for 24.26 s and the next completed turn
 began PCM in 120 ms; one idle restart kept readiness unavailable for 26.16 s
 and the next turn likewise began at 120 ms. Both tests used the local wrapper
-image and were isolated/stopped. Publish, pin and verify alpha.10 wrapper;
-then resume the human listening and physical integration gates.
+image and were isolated/stopped. The published-image verification below
+confirms the same recovery behavior; human listening and physical integration
+remain open gates.
+
+Alpha.10 wrapper published at OCI index
+`sha256:192b16de727635df8ad1b194636df0b0641cb06995306f614816e12dfa9b91d9`
+and release Compose pins it with the verified alpha.8 backend. The exact
+published pair passed both immediate midstream and idle backend-restart
+checks: readiness stayed 503 for 24.00/24.24 s, the next completed turns
+started PCM in 120/119 ms, and the interrupted turn emitted one correlated
+backend error with no stale audio. The isolated project was stopped; other
+Cortex containers remain untouched. Owner listening and physical Satellite
+integration are still open gates.

@@ -209,8 +209,9 @@ only the dedicated TTS project. `docs/ROLLBACK.md` gives the immutable image
 and chunk-setting fallback within this repository. Do not alter the Satellite
 runtime or deploy the direct PCM client as an implicit workaround.
 
-Existing Cortex/Satellite repositories are intentionally untouched by this
-standalone implementation.
+The initial standalone implementation left existing Cortex/Satellite
+repositories untouched; the opt-in turn-events addendum below is a later
+coordinated software change and still does not modify Satellite.
 This checklist was checked read-only against `cortex-core` commit
 `5ed4d07cec56fca89954ac377ef4b5162b4c0c61` and `cortex-deploy` commit
 `3cf01af1e7abd96e3f5b9798a50907cc05924a12`, plus `cortex-satellite`
@@ -218,3 +219,31 @@ commit `d332fb3da791c0c53106ef46a41715ba14079c33` (which pins LVA
 `2d460b672871547701c9a0389a7873a70153b014`), on 2026-09-28.
 Satellite's historical audible diagnostic replies do not validate this isolated
 Cortex/Breeze pipeline. Recheck these contracts before a coordinated change.
+
+## Opt-in Core turn events and progressive PCM client
+
+The trusted example client `scripts/core_turn_client.py` now exposes
+`synthesize_core_stream(...)` as a separate opt-in API. It authenticates to
+Core's versioned `/events?speech=true` turn endpoint, validates turn/action
+correlation, and sends only Core's `progress_speech`, `approval_waiting` (when
+enabled), or `response_available.speech_text` to this TTS service. It ignores
+model deltas, tool details and visual status as speech. The existing
+`synthesize_core_turn(...)` polling route remains intact.
+
+For playback, provide async `on_audio(packet)` and `on_clear_audio()` callbacks;
+the latter must clear the playback queue on preemption/interruption. The
+client forwards bounded 24 kHz mono PCM packets as they arrive, without
+waiting for `done`; it does not buffer a full WAV. A callback that blocks over
+0.5 seconds fails the turn. An authoritative answer cancels active progress
+synthesis, waits at most one second for local stop, clears queued progress
+audio, and withholds answer playback if stop cannot be confirmed. Packets
+arriving after cancellation are discarded. A local
+`cancel_event` closes only the TTS/audio path; it does not call Core's action
+`/interrupt` endpoint or change a completed receipt.
+
+Core's at-most-once speech **offer** is not proof of synthesis or playback.
+Reconnection does not replay offered speech. The returned timing fields use
+Core tracker and local client clocks and identify first PCM, not first audible
+sound. The `on_audio` callback is not wired to LVA/Satellite; physical audio
+focus, queue-fill policy, underruns and barge-in still need a separate measured
+playback integration. The synthetic test client runs without a GPU.

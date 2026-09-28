@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 from pathlib import Path
 
@@ -17,7 +18,7 @@ TURN_ID = "vt_" + "a" * 32
 
 @pytest.fixture
 async def core_server():
-    state = {"responses": [], "requests": []}
+    state = {"responses": [], "requests": [], "events": []}
 
     async def result(request):
         assert request.headers.get("Authorization") == "Bearer core-test-token"
@@ -25,9 +26,24 @@ async def core_server():
         rows = state["responses"]
         return web.json_response(rows[min(len(state["requests"]) - 1, len(rows) - 1)])
 
+    async def events(request):
+        assert request.headers.get("Authorization") == "Bearer core-test-token"
+        state["requests"].append(request.path)
+        response = web.StreamResponse(headers={"Content-Type": "text/event-stream"})
+        await response.prepare(request)
+        for delay, item in state["events"]:
+            await asyncio.sleep(delay)
+            try:
+                await response.write(b"data: " + json.dumps(item).encode() + b"\n\n")
+            except (ConnectionError, RuntimeError):
+                break
+        return response
+
     app = web.Application()
     app.router.add_get("/v1/voice/device/turns/{turn_id}", result)
     app.router.add_get("/v1/voice/turns/{turn_id}", result)
+    app.router.add_get("/v1/voice/device/turns/{turn_id}/events", events)
+    app.router.add_get("/v1/voice/turns/{turn_id}/events", events)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "127.0.0.1", 0)
@@ -236,3 +252,141 @@ async def test_playback_cancel_interrupts_pending_core_get(monkeypatch):
             task.cancel()
             await asyncio.gather(task, return_exceptions=True)
         await runner.cleanup()
+
+
+def wire_event(kind, number, **fields):
+    return {"version": "1.0.0", "id": f"boot:{number}",
+            "audio_turn_id": TURN_ID, "action_id": "act_" + "1" * 32,
+            "type": kind, **fields}
+
+
+@pytest.mark.asyncio
+async def test_pcm_callback_requires_local_queue_clear():
+    async def audio(_):
+        pass
+
+    with pytest.raises(ValueError, match="queue-clear"):
+        await core_turn_client.synthesize_core_stream(
+            "http://unused", TURN_ID, "token", tts_url="ws://unused", on_audio=audio)
+
+
+@pytest.mark.asyncio
+async def test_progress_pcm_is_preempted_by_authoritative_answer(core_server, monkeypatch):
+    base, state = core_server
+    state["events"] = [
+        (0, wire_event("snapshot", 0, state="running", speech_text=None)),
+        (0, wire_event("tool_activity", 1, activity="working", speech_text="secret")),
+        (0, wire_event("progress_speech", 2, ordinal=1, speech_text="I'm checking that now.")),
+        (0.03, wire_event("response_available", 3, state="succeeded",
+                          speech_text="When I checked, the lamp was off.")),
+        (0, wire_event("terminal", 4, state="succeeded")),
+    ]
+    calls = []
+    forwarded = []
+    clear_count = []
+    progress_started = asyncio.Event()
+
+    async def tts(args, *, on_audio, cancel_event):
+        calls.append(args.text[0])
+        assert args.output is None and args.collect_playback_packets is False
+        await on_audio(b"\0\0")
+        if "checking" in args.text[0]:
+            progress_started.set()
+            await cancel_event.wait()
+            await on_audio(b"stale0")
+            return {"complete": False, "cancelled": True}
+        await asyncio.sleep(0.01)
+        return {"complete": True, "first_audio_before_end": True}
+
+    async def audio(packet):
+        forwarded.append(packet)
+
+    async def clear_audio():
+        clear_count.append(True)
+
+    monkeypatch.setattr(core_turn_client, "run_stream_client", tts)
+    result = await core_turn_client.synthesize_core_stream(
+        base, TURN_ID, "core-test-token", tts_url="ws://unused",
+        on_audio=audio, on_clear_audio=clear_audio)
+    assert progress_started.is_set()
+    assert calls == ["I'm checking that now.", "When I checked, the lamp was off."]
+    assert forwarded == [b"\0\0", b"\0\0"]  # stale packet was discarded
+    assert len(clear_count) == 1
+    assert result["core_state"] == "succeeded"
+    assert result["timing"]["first_pcm_client_elapsed_ms"] is not None
+    assert result["timing"]["basis"].endswith("not audible latency")
+
+
+@pytest.mark.asyncio
+async def test_stream_rejects_uncorrelated_or_unapproved_speech(core_server, monkeypatch):
+    base, state = core_server
+    state["events"] = [
+        (0, wire_event("snapshot", 0, state="running", speech_text=None)),
+        (0, wire_event("response_available", 1, state="succeeded",
+                       speech_text="Untrusted", action_id="act_foreign")),
+    ]
+
+    async def unexpected_tts(*args, **kwargs):
+        pytest.fail("uncorrelated Core event must not reach TTS")
+
+    monkeypatch.setattr(core_turn_client, "run_stream_client", unexpected_tts)
+    with pytest.raises(RuntimeError, match="correlation changed"):
+        await core_turn_client.synthesize_core_stream(
+            base, TURN_ID, "core-test-token", tts_url="ws://unused")
+
+
+@pytest.mark.asyncio
+async def test_stream_local_stop_does_not_interrupt_core_action(core_server, monkeypatch):
+    base, state = core_server
+    state["events"] = [(0, wire_event("snapshot", 0, state="running", speech_text=None)),
+                       (1, wire_event("working", 1, state="running"))]
+    cancel = asyncio.Event()
+
+    async def unexpected_tts(*args, **kwargs):
+        pytest.fail("no speakable event was emitted")
+
+    monkeypatch.setattr(core_turn_client, "run_stream_client", unexpected_tts)
+    task = asyncio.create_task(core_turn_client.synthesize_core_stream(
+        base, TURN_ID, "core-test-token", tts_url="ws://unused", cancel_event=cancel))
+    await asyncio.sleep(0.02)
+    cancel.set()
+    with pytest.raises(core_turn_client.PlaybackCancelled):
+        await asyncio.wait_for(task, 0.3)
+    assert state["requests"] == [f"/v1/voice/device/turns/{TURN_ID}/events"]
+
+
+@pytest.mark.asyncio
+async def test_local_stop_clears_progress_pcm_without_core_interrupt(core_server, monkeypatch):
+    base, state = core_server
+    state["events"] = [(0, wire_event("snapshot", 0, state="running", speech_text=None)),
+                       (0, wire_event("progress_speech", 1, ordinal=1,
+                                      speech_text="I'm working on your request.")),
+                       (1, wire_event("working", 2, state="running"))]
+    cancel = asyncio.Event()
+    started = asyncio.Event()
+    forwarded = []
+    clears = []
+
+    async def tts(args, *, on_audio, cancel_event):
+        await on_audio(b"\0\0")
+        started.set()
+        await cancel_event.wait()
+        await on_audio(b"stale0")
+        return {"cancelled": True}
+
+    async def audio(packet):
+        forwarded.append(packet)
+
+    async def clear_audio():
+        clears.append(True)
+
+    monkeypatch.setattr(core_turn_client, "run_stream_client", tts)
+    task = asyncio.create_task(core_turn_client.synthesize_core_stream(
+        base, TURN_ID, "core-test-token", tts_url="ws://unused", on_audio=audio,
+        on_clear_audio=clear_audio, cancel_event=cancel))
+    await asyncio.wait_for(started.wait(), 1)
+    cancel.set()
+    with pytest.raises(core_turn_client.PlaybackCancelled):
+        await asyncio.wait_for(task, 0.3)
+    assert forwarded == [b"\0\0"] and clears == [True]
+    assert state["requests"] == [f"/v1/voice/device/turns/{TURN_ID}/events"]

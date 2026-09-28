@@ -88,6 +88,11 @@ When Core already has a complete authorized reply, send it as one `text`
 message rather than artificially splitting it into sentences. The incremental
 API remains available when authorized text genuinely arrives in pieces.
 
+An opt-in trusted client in `scripts/core_turn_client.py` consumes Core's
+authenticated turn events and forwards approved progress/final phrases as
+progressive PCM to a callback. It keeps local TTS cancellation distinct from
+Core action interruption; it is not a Satellite playback implementation.
+
 For a standalone synthetic test of a delivery change within one session, use
 the client with two text pieces:
 

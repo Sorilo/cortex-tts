@@ -121,6 +121,196 @@ async def synthesize_core_turn(core_url: str, turn_id: str, core_token: str, *,
             "core_state": authoritative["state"], "tts": tts}
 
 
+async def synthesize_core_stream(core_url: str, turn_id: str, core_token: str, *,
+                                 tts_url: str, actor: str = "device", voice: str = "",
+                                 instruction: str = "Speak clearly and naturally.",
+                                 timeout: float = 95.0, tts_timeout: float = 120.0,
+                                 allow_approval_pending: bool = False,
+                                 on_audio: Callable[[bytes], Awaitable[None]] | None = None,
+                                 on_clear_audio: Callable[[], Awaitable[None]] | None = None,
+                                 cancel_event: asyncio.Event | None = None) -> dict:
+    """Opt-in Core SSE → serialized TTS PCM. Local audio stop never cancels an action.
+
+    This is a trusted client example, not a Satellite/LVA playback adapter. It does
+    not replay speech after reconnect or infer a result from a disconnected stream.
+    """
+    if not TURN_ID.fullmatch(turn_id) or actor not in {"device", "software"}:
+        raise ValueError("invalid Core voice turn or actor")
+    if not core_token or timeout <= 0 or tts_timeout <= 0:
+        raise ValueError("Core token and positive deadlines required")
+    if on_audio is not None and on_clear_audio is None:
+        raise ValueError("PCM playback requires a queue-clear callback for interruption")
+    if cancel_event is not None and cancel_event.is_set():
+        raise PlaybackCancelled("playback cancelled before Core streaming")
+    started = time.monotonic()
+    path = "/v1/voice/device/turns/" if actor == "device" else "/v1/voice/turns/"
+    url = core_url.rstrip("/") + path + turn_id + "/events?speech=true"
+    action_id = None
+    active: asyncio.Task | None = None
+    active_cancel: asyncio.Event | None = None
+    answer_started = False
+    progress_ordinals: set[int] = set()
+    first_pcm_ms = None
+    speech_ready_ms = None
+    snapshot_ms = None
+    hermes_started_ms = None
+    tool_activity_ms = None
+    tts_start_ms = None
+    cancellation_ms = None
+    terminal_state = None
+    tts_result = None
+    finished = False
+
+    async def stop_speech() -> None:
+        nonlocal active, active_cancel, cancellation_ms
+        if active is None:
+            return
+        if active.done():
+            await asyncio.gather(active, return_exceptions=True)
+        else:
+            assert active_cancel is not None
+            active_cancel.set()
+            cancellation_ms = round((time.monotonic() - started) * 1000)
+            done, _ = await asyncio.wait({active}, timeout=0.8)
+            if not done:
+                active.cancel()  # Closing the socket is the bounded local fallback.
+                done, _ = await asyncio.wait({active}, timeout=0.2)
+            if not done:
+                raise RuntimeError("TTS cancellation unconfirmed; answer playback withheld")
+            await asyncio.gather(active, return_exceptions=True)
+        if on_clear_audio is not None:
+            await asyncio.wait_for(on_clear_audio(), timeout=0.5)
+        active = None
+
+    def start_speech(text: str) -> None:
+        nonlocal active, active_cancel, tts_start_ms, first_pcm_ms
+        if not isinstance(text, str) or not text.strip() or len(text) > 240:
+            raise RuntimeError("Core speech event is missing or oversized")
+        active_cancel = asyncio.Event()
+        local_cancel = active_cancel
+        tts_start_ms = round((time.monotonic() - started) * 1000)
+
+        async def forward_pcm(packet: bytes) -> None:
+            nonlocal first_pcm_ms
+            if local_cancel.is_set() or (cancel_event is not None and cancel_event.is_set()):
+                return
+            if len(packet) > 65536 or len(packet) % 2:
+                raise RuntimeError("invalid bounded PCM packet")
+            if first_pcm_ms is None:
+                first_pcm_ms = round((time.monotonic() - started) * 1000)
+            if on_audio is not None:
+                await asyncio.wait_for(on_audio(packet), timeout=0.5)
+
+        active = asyncio.create_task(run_stream_client(SimpleNamespace(
+            url=tts_url, voice=voice, instruction=instruction, text=[text], output=None,
+            cancel_after_audio_bytes=0, piece_delay_ms=0, flush_each=False,
+            timeout=tts_timeout, collect_playback_packets=False,
+        ), on_audio=forward_pcm, cancel_event=local_cancel))
+
+    async def next_line(response) -> bytes:
+        line_task = asyncio.create_task(response.content.readline())
+        stop_task = (asyncio.create_task(cancel_event.wait())
+                     if cancel_event is not None else None)
+        try:
+            waiting = {line_task} | ({stop_task} if stop_task is not None else set())
+            done, _ = await asyncio.wait(waiting, timeout=10.0,
+                                         return_when=asyncio.FIRST_COMPLETED)
+            if stop_task is not None and stop_task in done:
+                raise PlaybackCancelled("local playback cancelled")
+            if line_task not in done:
+                raise TimeoutError("Core progress stream stalled")
+            return await line_task
+        finally:
+            if not line_task.done():
+                line_task.cancel()
+            if stop_task is not None:
+                stop_task.cancel()
+                await asyncio.gather(stop_task, return_exceptions=True)
+            await asyncio.gather(line_task, return_exceptions=True)
+
+    try:
+        async with aiohttp.ClientSession(
+            headers={"Authorization": "Bearer " + core_token},
+            timeout=aiohttp.ClientTimeout(total=timeout), trust_env=False,
+        ) as client:
+            async with client.get(url) as response:
+                response.raise_for_status()
+                if "text/event-stream" not in response.headers.get("content-type", ""):
+                    raise RuntimeError("Core did not return a turn event stream")
+                while True:
+                    line = await next_line(response)
+                    if not line:
+                        break
+                    if len(line) > 4096:
+                        raise RuntimeError("Core event line exceeds bound")
+                    if not line.startswith(b"data: "):
+                        continue
+                    try:
+                        event = json.loads(line[6:])
+                    except (ValueError, TypeError) as exc:
+                        raise RuntimeError("invalid Core event") from exc
+                    if (not isinstance(event, dict) or event.get("version") != "1.0.0"
+                            or event.get("audio_turn_id") != turn_id
+                            or not isinstance(event.get("action_id"), str)
+                            or not event["action_id"].startswith("act_")):
+                        raise RuntimeError("Core turn event correlation is invalid")
+                    if action_id is None:
+                        action_id = event["action_id"]
+                    elif event["action_id"] != action_id:
+                        raise RuntimeError("Core action correlation changed")
+                    kind = event.get("type")
+                    if kind == "snapshot" and snapshot_ms is None:
+                        snapshot_ms = event.get("elapsed_ms")
+                    elif kind == "hermes_started" and hermes_started_ms is None:
+                        hermes_started_ms = event.get("elapsed_ms")
+                    elif kind == "tool_activity" and tool_activity_ms is None:
+                        tool_activity_ms = event.get("elapsed_ms")
+                    elif kind == "progress_speech" and not answer_started:
+                        ordinal = event.get("ordinal")
+                        if ordinal in {1, 2} and ordinal not in progress_ordinals:
+                            progress_ordinals.add(ordinal)
+                            if active is None or active.done():
+                                start_speech(event.get("speech_text"))
+                    elif kind == "approval_waiting" and allow_approval_pending:
+                        speech_ready_ms = event.get("elapsed_ms")
+                        await stop_speech()
+                        start_speech(event.get("speech_text"))
+                        tts_result = await active
+                        terminal_state = "awaiting_approval"
+                        finished = True
+                        break
+                    elif kind == "response_available":
+                        if event.get("state") not in TERMINAL or answer_started:
+                            continue
+                        speech_ready_ms = event.get("elapsed_ms")
+                        await stop_speech()
+                        start_speech(event.get("speech_text"))
+                        answer_started = True
+                        terminal_state = event["state"]
+                    elif kind == "terminal":
+                        if not answer_started or event.get("state") != terminal_state:
+                            raise RuntimeError("Core terminal event lacked authoritative speech")
+                        assert active is not None
+                        tts_result = await active
+                        finished = True
+                        break
+    finally:
+        if not finished:
+            await stop_speech()
+    if terminal_state is None or tts_result is None:
+        raise RuntimeError("Core event stream ended without a speakable result")
+    return {"core_audio_turn_id": turn_id, "core_action_id": action_id,
+            "core_state": terminal_state, "tts": tts_result,
+            "timing": {"basis": "synthetic-client-monotonic; not audible latency",
+                       "core_snapshot_elapsed_ms": snapshot_ms,
+                       "hermes_started_core_elapsed_ms": hermes_started_ms,
+                       "tool_activity_core_elapsed_ms": tool_activity_ms,
+                       "speech_ready_core_elapsed_ms": speech_ready_ms,
+                       "tts_start_client_elapsed_ms": tts_start_ms,
+                       "first_pcm_client_elapsed_ms": first_pcm_ms,
+                       "cancel_client_elapsed_ms": cancellation_ms}}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--core-url", required=True, help="Trusted Core base URL")

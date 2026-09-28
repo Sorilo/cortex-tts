@@ -134,7 +134,8 @@ async def run(args: argparse.Namespace, *,
                             largest_chunk_gap = max(largest_chunk_gap, arrived - last_chunk_at)
                         last_chunk_at = arrived
                         duration = len(message.data) / 48000
-                        packets.append((arrived - started, duration))
+                        if getattr(args, "collect_playback_packets", True):
+                            packets.append((arrived - started, duration))
                         if ideal_playback_end is None:
                             ideal_playback_end = arrived + duration
                         elif arrived > ideal_playback_end:

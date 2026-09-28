@@ -55,6 +55,22 @@ target playback client.
   fill-level simulation used by the corpus benchmark. Six Core-result gate
   cases and one synthetic Core-to-wrapper path verify that only correlated,
   authorized `speech_text` reaches TTS.
+- The opt-in Core turn client was also exercised against the published
+  alpha.8 backend/alpha.10 wrapper Q4 digest pair on the RTX 3080. An isolated
+  authenticated fake Core returned an unspeakable `admitted` result followed
+  by terminal `speech_text`; the client made two Core GETs, then received
+  84,480 PCM bytes (1.76 s) from the real streaming service. Its first TTS
+  packet arrived 395 ms after text send and the request ran at 1.48× real
+  time. A subsequent ten-turn same-text run had median/p95 first PCM after
+  text of 117/344 ms (the p95 is the maximum with ten samples), minimum
+  1.59× generation speed, ten completions and zero idealized zero-buffer
+  underruns. Nine turns started PCM in 116–121 ms; the first took 344 ms.
+  The backend enumerated the NVIDIA RTX 3080 Vulkan device and owned 2,957 MiB
+  at one GPU snapshot. This is synthetic loopback evidence, not a GPU memory
+  peak, human listening result, or physical Satellite playback test. The
+  ignored artifacts are `evidence/local/core-handoff-published-alpha10*.json`
+  and matching WAVs. Only the isolated `cortex-tts-release` project was
+  started and stopped; temporary test tokens were removed.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.
 - Pinned Q4, Q6 and Q8 GGUF files plus official codec downloaded and SHA-256

@@ -237,3 +237,14 @@ Approval-pending speech is opt-in; playback cancellation never calls Core's
 action interrupt. Six new synthetic Core-result gate cases plus one end-to-end
 fake-Core/fake-backend wrapper path bring the local suite to 30 passing tests.
 No Core, HA, Satellite, or other repo was modified.
+
+Validated the new trusted Core turn client against the published alpha.8/Q4
+backend and alpha.10 wrapper pair in an isolated `cortex-tts-release` project.
+An authenticated fake Core moved from `admitted` with null speech to a
+terminal authorized result; the real wrapper streamed 84,480 PCM bytes.
+Ten further same-text turns completed above real time, with 117/344 ms
+median/p95 first PCM after text and no idealized zero-buffer underruns.
+The RTX 3080 Vulkan backend was confirmed by log and GPU process ownership.
+Recorded synthetic limits in `docs/VALIDATION.md`; ignored JSON/WAV evidence
+stays under `evidence/local/`. The isolated project is down and its temporary
+token file was removed. Physical playback and human sound judgment remain open.

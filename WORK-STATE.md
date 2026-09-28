@@ -208,3 +208,13 @@ started PCM in 120/119 ms, and the interrupted turn emitted one correlated
 backend error with no stale audio. The isolated project was stopped; other
 Cortex containers remain untouched. Owner listening and physical Satellite
 integration are still open gates.
+
+The pinned alpha.8/alpha.10 release pair also passed a 48-request shared-GPU
+run with actively transcribing pinned Whisper `base.en`: eight Q4 combined-
+message corpus turns had first-PCM median/p95 138/154 ms, minimum 1.558×
+speed and zero modeled zero-buffer underrun requests; 20 cancellation/fresh-
+turn pairs had cancel median/p95/max 128/139/157 ms with 20/20 recoveries.
+Whisper transcribed 276/276 generated-clip probes, observed peak GPU use was
+3,726 MiB, 111/111 readiness probes stayed healthy, and all three isolated
+containers had zero restarts. The test project was removed afterward. See
+docs/VALIDATION.md for workload and measurement limits.

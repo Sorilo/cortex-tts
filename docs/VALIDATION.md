@@ -396,6 +396,24 @@ target playback client.
   request. The wrapper had zero restarts and the dedicated stack was removed.
   These timings prove only the tested restart paths and local workload;
   evidence is `evidence/local/published-alpha10-rewarm-smoke.json`.
+- The current digest-pinned alpha.8-backend/alpha.10-wrapper pair was also
+  tested with isolated pinned LinuxServer Wyoming Whisper `base.en` actively
+  transcribing a repository-generated 3.92 s WAV. Eight Q4 combined-message
+  corpus turns completed with first-PCM median/p95 138/154 ms, minimum
+  generation speed 1.558× real time and zero idealized zero-buffer underrun
+  requests. Twenty cancel-after-first-audio/fresh-turn pairs completed with
+  cancel median/p95/max 128/139/157 ms, 20/20 fresh recoveries and zero
+  post-cancel PCM asserted by the benchmark. Whisper returned the expected
+  transcript on 276/276 probes. Across 240 samples, observed combined GPU
+  memory peaked at 3,726 MiB; all 111 readiness probes remained 200, all
+  three containers had zero restarts, and final wrapper metrics reported
+  48 requests, 20 cancellations, zero failures, no active or queued request.
+  The isolated stack was removed afterward. This workload did not trigger a
+  spurious recovery warmup, but finite synthetic traffic cannot prove that
+  will never happen. Ignored evidence is in
+  `evidence/local/corpus-published-alpha10-q4-active-base/`,
+  `evidence/local/cancel-published-alpha10-q4-active-base-20.json`, and
+  `evidence/local/published-alpha10-active-base-summary.json`.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

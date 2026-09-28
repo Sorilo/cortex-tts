@@ -110,6 +110,12 @@ target playback client.
 - Human listening, long-duration diverse-text soak, real playback-device
   underruns, far-field microphone audio, and physical Satellite/Core integration
   remain pending.
+- The same-sentence Q4/Q6/Q8 default-voice WAVs are valid 24 kHz mono 16-bit
+  PCM with no clipped samples. Their raw RMS sample magnitudes were about
+  2,293/1,921/789 respectively; Q8 is markedly quieter in this single sample.
+  Level-matched copies are stored only under ignored `evidence/local/` for
+  owner listening. Loudness and one STT back-transcription do not rank voice
+  naturalness, pronunciation or clone similarity.
 - The digest-pinned **alpha.5** published backend and wrapper passed an isolated
   Compose smoke on this RTX 3080: backend Vulkan0, zero restarts, wrapper
   `/readyz` healthy after 21.8 s startup warmup, Cortex PCM streamed, and

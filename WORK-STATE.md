@@ -43,5 +43,12 @@ Alpha.2's backend image predates the headless EGL fix.
 Alpha.4's GitHub-built backend exited SIGILL on this host (native CPU tuning
 from the CI runner). The backend Dockerfile now sets `GGML_NATIVE=OFF` and
 `GGML_AVX512=OFF`; a local portable rebuild ran Q4 on Vulkan0 and streamed
-audio, with warm TTFA 185 ms. Publish and test the portable image before
-finalizing the release Compose digest.
+audio, with warm TTFA 185 ms. The published alpha.5 image passed the release
+smoke and soak below.
+Alpha.5 published backend and wrapper passed an isolated release Compose smoke
+and a 100-request Q4 soak alongside 150 synthetic Whisper base.en requests;
+observed combined peak was 3,618 MiB. See docs/VALIDATION.md. One cancellation
+metric counted the client closing after `cancelled` as a failure; the Cortex
+stream now treats `cancelled` as terminal and has a regression test. Publish
+the next wrapper image and pin its digest while retaining the verified
+portable backend.

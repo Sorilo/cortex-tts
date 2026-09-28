@@ -66,7 +66,7 @@ target playback client.
   The backend build now disables ggml native CPU tuning and AVX-512. A local
   rebuild loaded Q4 on Vulkan0 and streamed 176,640 PCM bytes per request;
   its first cold TTFA was 12.635 s, then 185 ms and 2.19× real time. The
-  published portable image still needs its own smoke test before release pinning.
+  published portable image was subsequently verified as described below.
 - Q4, 20 sequential warm short requests per path with the same saved synthetic
   voice: direct TTFA median/p95 186/189 ms, wrapper 187/193 ms. Wrapper's median
   TTFA exceeded direct by about 1 ms; this sequential experiment does not
@@ -107,8 +107,25 @@ target playback client.
   450 ms and ran at 1.37×, while subsequent ones started in 186–196 ms and
   ran above 2×. This simulation assumes PCM playback starts exactly at the first
   audio packet and does not include real device jitter or output buffering.
-- Human listening, sustained soak, playback underruns, far-field microphone
-  audio, and physical Satellite/Core integration remain pending.
+- Human listening, long-duration diverse-text soak, real playback-device
+  underruns, far-field microphone audio, and physical Satellite/Core integration
+  remain pending.
+- The digest-pinned **alpha.5** published backend and wrapper passed an isolated
+  Compose smoke on this RTX 3080: backend Vulkan0, zero restarts, wrapper
+  `/readyz` healthy after 21.8 s startup warmup, Cortex PCM streamed, and
+  Wyoming returned AudioStart/Chunk/Stop. Twenty alternating direct/wrapper
+  pairs measured wrapper TTFA median/p95 183/189 ms and paired p95 wrapper
+  overhead 8 ms; all 40 requests had zero idealized underruns. A 100-request
+  published-wrapper soak with pinned base.en resident and 150 synthetic STT
+  requests in parallel completed without a synthesis error or service restart:
+  TTFA median/p95 186/199 ms, minimum 2.04× real-time speed, zero idealized
+  underruns, 150/150 exact synthetic back-transcriptions, and 3,618 MiB
+  observed combined peak VRAM. The synthetic phrase and 3.92 s generated audio
+  were the same on each iteration; this cannot prove diverse-text quality.
+  One published cancel acknowledged in 215 ms with no subsequent audio.
+  The alpha.5 wrapper counted a client closing after `cancelled` as a failure;
+  the event is now terminal and a regression test checks the failure count.
+  Republish the wrapper before pinning that fix.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

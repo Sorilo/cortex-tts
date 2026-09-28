@@ -267,6 +267,7 @@ async def test_cancel_discards_pending_audio_and_frees_slot(services):
             assert (await ws.receive()).type == aiohttp.WSMsgType.BINARY
             await ws.send_json({"type": "cancel"})
             assert (await ws.receive_json())["type"] == "cancelled"
+            assert (await ws.receive()).type in {aiohttp.WSMsgType.CLOSE, aiohttp.WSMsgType.CLOSED}
             await ws.close()
         await asyncio.wait_for(disconnected.wait(), 1)
         for _ in range(20):
@@ -274,6 +275,8 @@ async def test_cancel_discards_pending_audio_and_frees_slot(services):
                 break
             await asyncio.sleep(0.01)
         assert not engine.admission.lock.locked()
+        assert engine.metrics.cancelled == 1
+        assert engine.metrics.failures == 0
         assert not done_gate.is_set()
         async with client.ws_connect(base + "/v1/speech/stream") as next_ws:
             assert (await next_ws.receive_json())["type"] == "ready"

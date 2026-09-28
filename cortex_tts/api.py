@@ -158,7 +158,7 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
                             await ws.send_json({**event, "turn_id": turn_id})
                             if event["type"] == "cancelled":
                                 engine.metrics.cancelled += 1
-                            if event["type"] in {"done", "error"}:
+                            if event["type"] in {"done", "error", "cancelled"}:
                                 finished = True
                                 if event["type"] == "error":
                                     engine.metrics.failures += 1

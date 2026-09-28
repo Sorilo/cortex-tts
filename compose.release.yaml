@@ -1,7 +1,7 @@
 name: cortex-tts-release
 services:
   breeze-backend:
-    image: ghcr.io/sorilo/cortex-tts-backend@sha256:88a85908cc26e169d937b117f8dd11c63e8e942fe12318da3a065c389f129ab0
+    image: ghcr.io/sorilo/cortex-tts-backend@sha256:0ace2780f6a5b4f47fe4ca5b977db83c09e51bdd38f4c9a5a1f6df023262e65e
     deploy:
       resources:
         reservations:
@@ -18,7 +18,7 @@ services:
     networks: [tts-internal]
     restart: unless-stopped
   wrapper:
-    image: ghcr.io/sorilo/cortex-tts-wrapper@sha256:cc3846ea827d2b1d272d24475da598b916d99a3f700e61875717e6668d6f498b
+    image: ghcr.io/sorilo/cortex-tts-wrapper@sha256:22b4e84560c78c82fe44327bf9a5902ace9413adf4f93716ffdc713425fc5953
     environment:
       BREEZE_HTTP: http://breeze-backend:8080
       BREEZE_WS: ws://breeze-backend:8081

@@ -218,3 +218,13 @@ Whisper transcribed 276/276 generated-clip probes, observed peak GPU use was
 3,726 MiB, 111/111 readiness probes stayed healthy, and all three isolated
 containers had zero restarts. The test project was removed afterward. See
 docs/VALIDATION.md for workload and measurement limits.
+
+Read-only Cortex handoff audit at Core `5ed4d07cec56fca89954ac377ef4b5162b4c0c61`
+and Deploy `3cf01af1e7abd96e3f5b9798a50907cc05924a12`: Core GET returns
+`speech_text` and may return null; the current HA voice agent waits terminal
+states, while Core can also author an `awaiting_approval` phrase. The
+development fake bridge returns a full eSpeak WAV; the dedicated HA pipeline
+has no TTS engine selected and the conversation agent itself is not the PCM
+playback transport. Updated docs/CORTEX-INTEGRATION.md to name the real
+handoff paths and keep adapter-authored failure phrases out of Breeze until
+their authority is explicitly reviewed. No Core/Deploy files were edited.

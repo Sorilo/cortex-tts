@@ -47,9 +47,21 @@ target playback client.
 - Wyoming streaming rejects a chunk or second `synthesize-stop` after input
   ended for an active request. Both cases send a terminal protocol error,
   close the backend session, and recover with a fresh request on the same TCP
-  connection in fake-backend tests. The local suite has 42 passing tests.
-  Published alpha.13 image behavior still needs an isolated smoke before its
-  digest replaces alpha.12.
+  connection in fake-backend tests. The local suite has 42 passing tests, and
+  [alpha.13 CI](https://github.com/Sorilo/cortex-tts/actions/runs/36407317623)
+  and [image publication](https://github.com/Sorilo/cortex-tts/actions/runs/36407317618)
+  passed for source `e031a6a691119bf63e09ea86a9e9fc9bcfd6e9a3`.
+  The published alpha.8-backend/alpha.13-wrapper pair was exercised in an
+  isolated RTX 3080 Vulkan project. Both late-chunk and duplicate-stop cases
+  returned the expected terminal protocol error without PCM, then fresh
+  Wyoming syntheses on the same TCP connection returned 76,800 PCM bytes each.
+  Rejected requests did not count as backend admissions; the two fresh turns
+  incremented the request metric by two, with zero failures, no active/queued
+  request, and zero container restarts. The alpha.13 wrapper OCI index is
+  `sha256:6e95299fc245e8d5d28900aedc31a80692a127b769b5c2b524887aae8e074fa0`.
+  Ignored evidence is `evidence/local/alpha13-published-wyoming-stop-smoke.json`.
+  The isolated stack, token, and temporary voices were removed. This is a
+  protocol/recovery smoke, not physical Satellite playback.
 - Cortex and Wyoming now cap cumulative per-session text at 12,000 characters
   in addition to the 2,000-character per-message limit. Tests verify that a
   multi-frame Cortex overflow yields one terminal protocol error, Wyoming

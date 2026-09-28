@@ -374,3 +374,14 @@ backend finished. They now produce a terminal protocol error, cancel and close
 the backend, and permit a fresh request on the same connection. The full local
 suite passes 42 tests. Version advanced to alpha.13; the alpha.12 release pin
 remains until publication and isolated published-image validation.
+
+Alpha.13 image publication and isolated RTX 3080 Wyoming smoke succeeded.
+Published wrapper OCI index
+`sha256:6e95299fc245e8d5d28900aedc31a80692a127b769b5c2b524887aae8e074fa0`
+with the tested alpha.8 backend rejected late chunk and duplicate stop with
+terminal protocol errors, then completed fresh same-connection syntheses
+(76,800 PCM bytes each). Neither rejected request reached backend admission;
+metrics increased only for the two fresh turns. Both containers had zero
+restarts. Release Compose and rollback records now pin the tested pair. The
+isolated project, token, and temporary voices were removed. Human listening
+and physical Satellite integration remain open.

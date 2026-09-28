@@ -16,14 +16,22 @@ are in ignored `evidence/local/listening-pack-level-matched/`. That directory's
 duration, RMS, peak and gain for each file. The recordings are deliberately
 excluded from Git because model output inherits the BreezeBlue license.
 
-Listen to `numbers`, `names`, `punctuation`, then `long_reply` for each
-quantization. Check whether Q4 changes the words, pronunciation, voice
-consistency, phrase joins or long-reply naturalness relative to Q6/Q8. The
+Run `python scripts/make_blind_listening_review.py` after preparing the matched
+pack, then open the ignored local
+`evidence/local/listening-pack-blind/index.html` in a browser. It presents
+A/B/C in a separately randomized order for each prompt and copies the matched
+WAV bytes unchanged. Record your preference and any audible faults for
+`numbers`, `names`, `punctuation`, and `long_reply` before opening the adjacent
+`answer-key.json`. The key records the random seed, variant mapping and source
+hashes; use `--seed` to reproduce the label order if needed. Decide whether Q4
+is acceptable relative to Q6/Q8, especially for names, numbers, phrase joins,
+voice consistency and long-reply naturalness. The
 matched copies use one constant linear attenuation per WAV to reach the
 quietest source RMS for that prompt; they preserve duration and dynamics. RMS
 matching is only a rough loudness control. This is one stochastic generation
-per prompt/model, not a blinded or repeated perceptual study. Owner listening
-and real speaker playback remain unverified.
+per prompt/model, not a repeated perceptual study. The local page hides labels
+for casual review but is not a controlled listening study. Owner listening and
+real speaker playback remain unverified.
 
 To reproduce, use the verified model files and a dedicated local env file with
 `BREEZE_MODEL_DIR`, `BREEZE_VOICES_DIR`, `BREEZE_GPU_DEVICE` and a fresh
@@ -41,6 +49,9 @@ three runs, execute `python scripts/prepare_listening_pack.py` to make the
 volume-matched copies. Supply `--source-commit`, `--backend-image` and
 `--wrapper-image` to embed the tested provenance in the local manifest. The
 release Compose default remains Q4 when `BREEZE_MODEL_FILE` is unset.
+The blind review generator checks the matched WAVs against those manifest
+hashes before copying them. Keep both review audio and the answer key under
+ignored `evidence/local/`; do not commit model outputs.
 
 The matching four-prompt Q4/Q6/Q8 run with actively transcribing
 `distil-small.en` is recorded in `docs/VALIDATION.md`. The tracked

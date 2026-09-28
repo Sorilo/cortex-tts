@@ -340,3 +340,10 @@ had zero restarts. This is a packaging/behavior smoke, not a new latency
 distribution, active-STT, listening, or physical test. Updated release Compose,
 README, rollback and validation docs to the tested pair. The isolated project
 and temporary token/voice files were removed.
+
+Added a blind local listening handoff for the existing Q4/Q6/Q8 matched pack.
+`scripts/make_blind_listening_review.py` verifies each matched WAV against its
+recorded hash, copies audio bytes unchanged under ignored
+`evidence/local/listening-pack-blind/`, and writes an A/B/C browser page plus
+a separate answer key. The local page was generated from all twelve existing
+samples; owner quality judgment and physical playback are still outstanding.

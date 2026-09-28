@@ -44,6 +44,13 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- A local blind A/B/C review page was generated from the twelve existing
+  Q4/Q6/Q8 level-matched samples. The generator verifies the manifest SHA-256
+  for every input and copies WAV bytes unchanged; a separate ignored answer
+  key records the per-prompt labels. Its test covers escaping, hidden labels,
+  exact copies, and rejection of a changed sample. This prepares owner
+  listening but supplies no human quality judgment or physical playback result;
+  see `docs/LISTENING.md`.
 - The published alpha.11 wrapper OCI index
   `sha256:8074f07a6a3a7daf105407c7bd70bcdb867a34a04c9c7941339a100c0dcfdd43`
   bounds first-audio metrics to the most recent 20 samples. Source commit

@@ -284,3 +284,15 @@ Core action cancellation; a pending GET and poll sleep are both interruptible.
 Three synthetic tests cover pre-GET, in-flight GET and between-GET cancellation,
 with no TTS request. The suite now has 36 passing tests; physical integration
 remains outside this standalone repo.
+
+Prepared a broader local Q4/Q6/Q8 listening pack on the published alpha.8/
+alpha.10 digest pair. Four identical complete-message prompts per model cover
+numbers, names, punctuation joins and a long reply. All twelve turns completed
+above real time with zero idealized zero-buffer underrun requests in this run.
+The tracked `benchmarks/listening_corpus.json` and
+`scripts/prepare_listening_pack.py` reproduce the corpus and volume-matched
+review copies under ignored `evidence/local/`; `docs/LISTENING.md` explains
+the owner review. `BREEZE_MODEL_FILE` now selects Q6/Q8 in an isolated Compose
+run while unset still defaults to Q4. Isolated containers and temporary tokens
+were removed. One stochastic sample per prompt cannot establish perceived
+quality; owner listening and physical Satellite validation remain open.

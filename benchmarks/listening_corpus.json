@@ -1,0 +1,6 @@
+[
+  {"id": "numbers", "pieces": ["The timer is set for 17 minutes and 45 seconds."]},
+  {"id": "names", "pieces": ["Maya asked Alex to call Jordan at noon."]},
+  {"id": "punctuation", "pieces": ["Wait, did you say Tuesday?", "Yes, next Tuesday at 8:30 a.m."]},
+  {"id": "long_reply", "pieces": ["Here is the plan for the afternoon. First, finish the report and send it for review. Next, take a short break and check the calendar for any changes. After that, prepare the notes for tomorrow's meeting. If something urgent comes up, handle it before starting the final task. Otherwise, leave enough time to review the details carefully and make sure everything is ready before dinner."]}
+]

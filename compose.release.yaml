@@ -3,7 +3,7 @@ services:
   breeze-backend:
     image: ghcr.io/sorilo/cortex-tts-backend@sha256:c8b2411666e60b76665f694f3f8c9d6bcf01a20f845f6dee33a1bbf28cd46a67
     command:
-      - /models/breeze-tts-2-q4_k.gguf
+      - ${BREEZE_MODEL_FILE:-/models/breeze-tts-2-q4_k.gguf}
       - --host
       - 0.0.0.0
       - --port

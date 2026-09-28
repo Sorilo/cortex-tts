@@ -164,6 +164,20 @@ target playback client.
   Level-matched copies are stored only under ignored `evidence/local/` for
   owner listening. Loudness and one STT back-transcription do not rank voice
   naturalness, pronunciation or clone similarity.
+- A broader owner listening pack was generated from the published alpha.8
+  backend/alpha.10 wrapper pair, using the same four names, numbers,
+  punctuation and long-reply prompts once each on Q4_K, Q6_K and Q8_0. All
+  twelve 24 kHz mono WAVs completed above real time, with minimum generation
+  speed 1.642×/1.640×/1.602× for Q4/Q6/Q8 respectively and zero idealized
+  zero-buffer underrun requests in these four-case runs. First-PCM median/p95
+  was 124/304, 130/379 and 124/320 ms; with four samples each, p95 is the
+  maximum. A tracked script creates twelve linearly attenuated, per-prompt
+  RMS-matched copies without changing timing or dynamics; the ignored local
+  manifest records prompts, source/image revisions, checksums and gains. See
+  `docs/LISTENING.md`. These are review materials, not human quality scores;
+  model sampling was not seed-controlled and physical speaker behavior is
+  still unmeasured. The isolated stack was stopped between models and after
+  Q8, and its temporary token was removed.
 - The digest-pinned **alpha.5** published backend and wrapper passed an isolated
   Compose smoke on this RTX 3080: backend Vulkan0, zero restarts, wrapper
   `/readyz` healthy after 21.8 s startup warmup, Cortex PCM streamed, and

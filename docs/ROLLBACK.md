@@ -47,3 +47,5 @@ To return to the current release, restore the alpha.8 backend and alpha.10
 wrapper digests above and `BREEZE_CHUNK_FIRST=2`, re-render Compose and repeat
 the dedicated-project readiness and speech smoke checks. No model assets or
 voice profiles need to be replaced for this image and chunk-setting rollback.
+Unset `BREEZE_MODEL_FILE` or set it to `/models/breeze-tts-2-q4_k.gguf` to
+restore the Q4 release default after a Q6/Q8 comparison.

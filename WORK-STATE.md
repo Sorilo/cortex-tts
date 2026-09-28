@@ -12,7 +12,7 @@ owns bounded admission, protocol adaptation and session lifetime. Vulkan is
 the initial backend because upstream reports it faster than CUDA for this
 implementation's small per-frame graphs.
 
-Independent evidence: 14 fake-backend/transport tests; Compose config;
+Independent evidence: 17 fake-backend/transport tests; Compose config;
 wrapper and pinned Vulkan backend builds; runtime `ldd`; SHA-256 verified Q4
 and codec files; CPU-only real-Q4 HTTP/Cortex/Wyoming streaming and synthetic
 saved-voice cloning. See docs/VALIDATION.md for measured CPU timings.
@@ -56,3 +56,15 @@ digest with the verified alpha.5 backend. That exact pair passed readiness,
 cancelled in 213 ms with no stale audio, reported `failures:0`, and completed
 a fresh next turn. Final source and image checks are recorded in
 docs/VALIDATION.md.
+
+The published digest-pinned pair also produced PCM before a second text piece
+arrived in a real delayed-input test; 10 queue probes measured about 0.75 s
+admission delay for an intentionally 0.75 s occupied slot. A versioned varied
+synthetic corpus completed 16 default, eight voice-design, eight saved-clone,
+and eight directed-clone turns. A locally generated 6.24 s WAV served as the
+clone reference. Cold text/voice shapes had isolated TTFA/speed outliers; warm
+repeats were about 2× real time. Eight generated outputs were checked through
+isolated pinned Whisper base.en and recovered the intended words. These checks
+do not replace owner listening or real playback. Local files are ignored under
+`evidence/local/`. Only the `cortex-tts-incremental-check` test project may be
+stopped; other Cortex containers remain untouched.

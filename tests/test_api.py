@@ -1,5 +1,8 @@
 import asyncio
 import json
+from pathlib import Path
+from runpy import run_path
+from types import SimpleNamespace
 
 import aiohttp
 import pytest
@@ -15,6 +18,9 @@ from wyoming.info import Describe, Info
 from wyoming.tts import Synthesize, SynthesizeStart, SynthesizeChunk, SynthesizeStop, SynthesizeStopped
 from wyoming.audio import AudioChunk, AudioStart, AudioStop
 from wyoming.error import Error
+
+run_stream_client = run_path(str(Path(__file__).resolve().parents[1] /
+                                 "scripts/stream_client.py"))["run"]
 
 
 @pytest.fixture
@@ -108,6 +114,22 @@ async def test_startup_warmup_finishes_before_accepting_clients(services):
     await asyncio.wait_for(warm_backend(engine, engine.settings), 1)
     await asyncio.wait_for(disconnected.wait(), 1)
     assert engine.metrics.requests == 0
+
+
+@pytest.mark.asyncio
+async def test_stream_client_receives_audio_before_later_text(services, monkeypatch):
+    base, done_gate, _, _ = services
+    done_gate.set()
+    monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
+    args = SimpleNamespace(url=base.replace("http://", "ws://") + "/v1/speech/stream",
+                           voice="", instruction="Speak clearly.",
+                           text=["First phrase.", "Second phrase."], output=None,
+                           cancel_after_audio_bytes=0, piece_delay_ms=100,
+                           flush_each=False, timeout=2)
+    result = await asyncio.wait_for(run_stream_client(args), 2)
+    assert result["complete"] and result["bytes"] == 400
+    assert result["first_audio_before_last_text"]
+    assert result["first_audio_before_end"]
 
 
 @pytest.mark.asyncio
@@ -292,7 +314,7 @@ async def test_cancel_discards_pending_audio_and_frees_slot(services):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("text", ["backend-error", "backend-drop"])
 async def test_backend_failure_is_terminal_and_releases_slot(services, text):
-    base, _, disconnected, engine = services
+    base, done_gate, disconnected, engine = services
     async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
         async with client.ws_connect(base + "/v1/speech/stream") as ws:
             await ws.receive_json()
@@ -307,3 +329,62 @@ async def test_backend_failure_is_terminal_and_releases_slot(services, text):
                 break
             await asyncio.sleep(0.01)
         assert not engine.admission.lock.locked()
+        async with client.ws_connect(base + "/v1/speech/stream") as next_ws:
+            assert (await next_ws.receive_json())["type"] == "ready"
+            await next_ws.send_json({"type": "start"})
+            await next_ws.send_json({"type": "text", "text": "Recovered."})
+            await next_ws.send_json({"type": "end"})
+            assert (await next_ws.receive_json())["type"] == "started"
+            assert (await next_ws.receive()).type == aiohttp.WSMsgType.BINARY
+            done_gate.set()
+            assert (await next_ws.receive_json())["type"] == "done"
+
+
+@pytest.mark.asyncio
+async def test_busy_stream_is_rejected_without_interrupting_active_audio(services):
+    base, _, disconnected, engine = services
+    engine.admission.limit = 0
+    async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
+        async with client.ws_connect(base + "/v1/speech/stream") as active:
+            assert (await active.receive_json())["type"] == "ready"
+            await active.send_json({"type": "start"})
+            await active.send_json({"type": "text", "text": "Continue."})
+            assert (await active.receive_json())["type"] == "started"
+            assert (await active.receive()).type == aiohttp.WSMsgType.BINARY
+            async with client.ws_connect(base + "/v1/speech/stream") as busy:
+                response = await busy.receive_json()
+                assert response["type"] == "error" and response["code"] == "busy"
+            assert engine.admission.lock.locked()
+        await asyncio.wait_for(disconnected.wait(), 1)
+        assert not engine.admission.lock.locked()
+
+
+@pytest.mark.asyncio
+async def test_bounded_waiters_are_served_in_order(services):
+    base, _, _, engine = services
+    engine.admission.limit = 2
+    async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
+        occupied = await client.ws_connect(base + "/v1/speech/stream")
+        first = second = None
+        try:
+            assert (await occupied.receive_json())["type"] == "ready"
+            first = await client.ws_connect(base + "/v1/speech/stream")
+            second = await client.ws_connect(base + "/v1/speech/stream")
+            for _ in range(50):
+                if engine.admission.waiters == 2:
+                    break
+                await asyncio.sleep(0.01)
+            assert engine.admission.waiters == 2
+            async with client.ws_connect(base + "/v1/speech/stream") as overflow:
+                event = await overflow.receive_json()
+                assert event["type"] == "error" and event["code"] == "busy"
+            await occupied.close()
+            assert (await asyncio.wait_for(first.receive_json(), 1))["type"] == "ready"
+            await first.close()
+            assert (await asyncio.wait_for(second.receive_json(), 1))["type"] == "ready"
+        finally:
+            await occupied.close()
+            if first:
+                await first.close()
+            if second:
+                await second.close()

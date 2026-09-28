@@ -29,19 +29,26 @@ task's STT container. Store machine-local measurements under ignored
 `evidence/local/`; publish only reviewable synthetic results and exact commands.
 
 Run the streaming example and benchmark with `scripts/stream_client.py`. The
-client reports first audio and generated-audio-to-wall-time ratio. It is a
-smoke metric. `scripts/benchmark_stream.py` compares direct and wrapped paths,
+client sends text concurrently with receiving audio, and `--piece-delay-ms`
+with `--flush-each` demonstrates audio preceding later text. It reports first
+audio and generated-audio-to-wall-time ratio; the latter includes deliberate
+input delays and is a smoke metric. `scripts/benchmark_queue.py` measures
+ready-event delay while one GPU slot is occupied. `scripts/benchmark_corpus.py`
+runs the versioned synthetic text corpus and saves local WAVs and per-turn JSON.
+`scripts/benchmark_stream.py` compares direct and wrapped paths,
 records first audio, throughput and chunk gaps in ignored `evidence/local/`.
 It does not yet infer actual playback buffer underruns; measure those with the
 target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 14 local fake-backend tests pass. They cover Cortex
+- Python package compiles; 17 local fake-backend tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   Wyoming stream timeout,
-  terminal backend errors and abrupt backend disconnects.
+  terminal backend errors and abrupt backend disconnects, recovery after both
+  failures, busy-slot isolation, queued admission order, and a concurrently
+  sending streaming client.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.
 - Pinned Q4, Q6 and Q8 GGUF files plus official codec downloaded and SHA-256
@@ -140,6 +147,30 @@ target playback client.
   showed `cancelled:1`, `failures:0`, `active:false`, `queued:0`. A fresh next
   turn produced 188,160 PCM bytes and completed normally. This verifies the
   cancellation fix in the published wrapper, not only in the local tests.
+- On the same digest-pinned Q4 release pair, two text pieces sent 1.5 s apart
+  with `--flush-each` produced the first PCM packet 0.413 s after connection,
+  before the second text piece at 1.506 s and before `end`. This is a real
+  incremental-output check; its wall-time throughput includes the intentional
+  input delay. Ten occupied-slot ready-event probes with a 0.75 s hold gave
+  estimated queue-delay median/p95 0.752/0.754 s. These timings separate
+  admission wait from synthesis startup but do not measure end-user LLM delay.
+- The reproducible eight-case synthetic corpus covers commands, names, numbers,
+  punctuation, multi-piece text and a 22.64 s long reply. Sixteen default Q4
+  turns completed: median/p95 first audio 186/194 ms. One first-pass weather
+  phrase ran at 1.15× real time, then 2.10× on repetition; a first-pass short
+  phrase began at 359 ms, then 191 ms. The other repeated turns were 1.98×
+  real time or faster. These are warm-system but not necessarily warm-shape
+  measurements, and do not establish sustained speed for arbitrary new text.
+- Eight voice-design turns completed with median/p95 first audio 187/481 ms;
+  eight synthetic saved-clone turns completed at 221/2386 ms; eight directed
+  clone turns completed at 222/486 ms. The large clone p95 came from a single
+  long-reply shape that started at 2.386 s. A 6.24 s WAV generated locally by
+  this TTS service was registered as the synthetic clone with its exact text;
+  it is not a human reference recording. In these small runs, after first-shape
+  warmup, all three modes generated audio faster than real time. Whisper
+  `base.en` recovered the intended names, numbers, multi-piece text and long
+  reply in eight probed outputs, allowing punctuation/spacing normalization.
+  This is an intelligibility proxy, not a listening or clone-similarity score.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

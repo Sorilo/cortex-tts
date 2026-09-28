@@ -69,3 +69,11 @@ reference recordings need not be retained by this service.
 
 Run local tests with `pytest -q`. Current benchmark status and remaining gates
 are in [docs/VALIDATION.md](docs/VALIDATION.md).
+
+For an isolated synthetic corpus run against an already-started service, set
+`CORTEX_TTS_TOKEN` and run `python scripts/benchmark_corpus.py --url
+ws://127.0.0.1:18080/v1/speech/stream`. WAVs and JSON stay in ignored
+`evidence/local/corpus/`. To verify that audio can arrive before later text,
+run `python scripts/stream_client.py --flush-each --piece-delay-ms 1500
+'The front door is locked.' 'The hallway lights are on.'`. Queue admission
+delay can be sampled with `python scripts/benchmark_queue.py`.

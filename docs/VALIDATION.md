@@ -44,6 +44,11 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- `docs/CORTEX-INTEGRATION.md` now defines a coordinated first-speaker test
+  through the current isolated HA Wyoming provider and LVA playback sink,
+  with authority, room, barge-in, latency, and rollback observations. This is
+  a handoff protocol only; no HA pipeline, Pi, or physical Satellite was
+  changed or tested here.
 - The current published alpha.8-backend/alpha.13-wrapper Q4 pair was tested
   with an isolated pinned LinuxServer Wyoming `distil-small.en` container
   actively transcribing the same 4.16 s synthetic timer WAV while expressive

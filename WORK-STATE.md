@@ -411,3 +411,12 @@ containers had zero restarts and wrapper metrics showed zero failures.
 See `docs/VALIDATION.md` for exact pins and limits. The isolated stack, token,
 temporary ports, and synthetic profile were removed. Human expressive-quality
 judgment and physical playback remain open.
+
+Prepared a concrete first-speaker acceptance protocol in
+`docs/CORTEX-INTEGRATION.md` for the current HA Wyoming/LVA path. Read-only
+Core, Deploy, and Satellite heads still match their previously audited pins.
+The handoff requires authority gating of the HA adapter's fixed local phrases
+before generic TTS selection, then measures Core result, HA/Wyoming events,
+first audible speaker output, room separation, barge-in, receipts, active-STT
+VRAM, and rollback. No HA, Satellite, Pi, or other Cortex repository was
+changed. It is a plan for a coordinated physical window, not physical evidence.

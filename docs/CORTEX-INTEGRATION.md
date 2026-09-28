@@ -157,6 +157,52 @@ counts and timing without utterance text or audio.
    eSpeak fallback and both Wyoming and direct-PCM paths. Then validate
    physical Satellite playback and barge-in in a coordinated task.
 
+## Coordinated first-speaker acceptance run
+
+Use the current LVA/HA playback path for the first physical run when the owner
+has a Satellite pause window. Before changing the isolated development voice
+HA, recheck the Core, Deploy, Satellite, and pinned LVA contracts below. Keep
+production HA, Pi, household devices outside the test, and every existing
+Cortex service running under its own owner. Use a separate digest-pinned TTS
+Compose project, dedicated ports/network/voice volume, and a verified GPU
+window. Wyoming TCP is not bearer-authenticated; expose it only to the trusted
+isolated voice HA path, while keeping the Cortex API token out of HA effects.
+
+The isolated voice HA currently has no TTS engine selected. Before selecting
+Breeze as its Wyoming provider, establish an authority gate for the adapter's
+fixed local rejection/unavailable phrases: a generic HA pipeline would speak
+them as well as Core `speech_text`. The first end-to-end case should use a
+synthetic, non-effect reply that Core authorizes. Confirm that HA selected the
+dedicated Cortex Assist pipeline and Wyoming provider, and that LVA routes the
+returned audio to its configured `pipewire/<playback_sink>` for the intended
+room. This path does not use `scripts/core_turn_client.py`'s PCM callback.
+
+Capture a per-turn timeline of Core's terminal state and `audio_turn_id` /
+`action_id`, the HA TTS request, Wyoming `audio-start` and first `audio-chunk`,
+first audible speaker output, and any rebuffers or interruption. Use a local
+test-run ID where HA/Wyoming do not carry the Cortex TTS `turn_id`; do not
+silently equate those identifiers. Compare first PCM with first audible sound
+and report both. Keep synthetic transcripts and timing only unless recording
+retention is explicitly chosen for the test.
+
+Run at least an ordinary authorized reply, denied/uncertain Core results, a
+long first-shape reply and its warm repeat, wrong-room/no-playback separation,
+and barge-in followed by a fresh reply. Check that device playback stops and
+queued audio is cleared, no late audio crosses turns, and Core action receipts
+remain unchanged unless a separate Core `/interrupt` request was actually
+made. Exercise approval-pending narration only after the HA adapter supports
+that state. Keep the fake software voice bridge's eSpeak route selectable and
+run its existing regression separately. Record audible continuity, perceived
+Q4 voice quality, cancellation, and Breeze-plus-active-Whisper GPU residency;
+the synthetic loopback numbers in `docs/VALIDATION.md` are not physical
+acceptance evidence.
+
+If the dedicated pipeline fails its authority, room, playback, or barge-in
+checks, restore that isolated HA pipeline's previous TTS selection and stop
+only the dedicated TTS project. `docs/ROLLBACK.md` gives the immutable image
+and chunk-setting fallback within this repository. Do not alter the Satellite
+runtime or deploy the direct PCM client as an implicit workaround.
+
 Existing Cortex/Satellite repositories are intentionally untouched by this
 standalone implementation.
 This checklist was checked read-only against `cortex-core` commit

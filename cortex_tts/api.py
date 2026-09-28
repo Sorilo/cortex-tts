@@ -26,7 +26,10 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
         return web.json_response({"status": "ok"})
 
     async def ready(_: web.Request) -> web.Response:
-        healthy = await engine.health()
+        backend_healthy = await engine.health()
+        if not backend_healthy and settings.warmup:
+            engine.warm_ready = False
+        healthy = backend_healthy and engine.warm_ready
         return web.json_response({"ready": healthy}, status=200 if healthy else 503)
 
     async def metrics(request: web.Request) -> web.Response:
@@ -76,6 +79,11 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
         ws = web.WebSocketResponse(heartbeat=20, max_msg_size=64 * 1024)
         await ws.prepare(request)
         turn_id = str(uuid.uuid4())
+        if not engine.warm_ready:
+            await ws.send_json({"type": "error", "code": "backend",
+                                "message": "backend warming", "turn_id": turn_id})
+            await ws.close()
+            return ws
         started = False
         finished = False
         input_ended = False
@@ -84,6 +92,8 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
         send_task: asyncio.Task | None = None
         try:
             async with engine.admission:
+                if not engine.warm_ready:
+                    raise BackendError("backend warming")
                 async with engine.session() as backend:
                     engine.metrics.requests += 1
                     await ws.send_json({"type": "ready", "version": 1, "turn_id": turn_id,
@@ -170,7 +180,13 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
             engine.metrics.failures += 1
             if not ws.closed:
                 await ws.send_json({"type": "error", "code": "protocol", "message": str(exc), "turn_id": turn_id})
-        except (BackendError, OSError, TimeoutError, ConnectionError, ValueError,
+        except BackendError as exc:
+            if settings.warmup:
+                engine.warm_ready = False
+            engine.metrics.failures += 1
+            if not ws.closed:
+                await ws.send_json({"type": "error", "code": "backend", "message": str(exc), "turn_id": turn_id})
+        except (OSError, TimeoutError, ConnectionError, ValueError,
                 aiohttp.ClientError) as exc:
             engine.metrics.failures += 1
             if not ws.closed:

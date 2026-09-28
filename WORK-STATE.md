@@ -185,3 +185,15 @@ without re-upload. A first short cloned turn started PCM at 2.98 s and was
 0.63× generated audio / wall time; an exact repeat started at 0.456 s and was
 1.59×. This is a first-use latency caveat, not a persistence failure. The
 dedicated test stack was stopped; other Cortex resources remained untouched.
+
+Recovery warmup fix: the alpha.9 wrapper could report `/readyz` healthy while
+the first post-restart turn still took 11.3 s to first PCM. The new wrapper
+watcher detects observed backend outages or stream failures, holds readiness
+at 503, rejects new turns with `code:backend` while warming, and re-runs the
+short/long warmup under the synthesis lock. Local tests now pass 23/23. On
+the RTX 3080 with the immutable alpha.8 backend, one immediate midstream
+restart kept readiness unavailable for 24.26 s and the next completed turn
+began PCM in 120 ms; one idle restart kept readiness unavailable for 26.16 s
+and the next turn likewise began at 120 ms. Both tests used the local wrapper
+image and were isolated/stopped. Publish, pin and verify alpha.10 wrapper;
+then resume the human listening and physical integration gates.

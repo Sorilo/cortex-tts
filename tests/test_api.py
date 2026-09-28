@@ -11,7 +11,7 @@ from aiohttp import web
 from cortex_tts.api import make_app
 from cortex_tts.config import Settings
 from cortex_tts.engine import Engine
-from cortex_tts.main import warm_backend
+from cortex_tts.main import warm_backend, watch_backend
 from cortex_tts.wyoming_adapter import start_wyoming
 from wyoming.client import AsyncTcpClient
 from wyoming.info import Describe, Info
@@ -288,6 +288,7 @@ async def test_wyoming_backend_drop_reports_error_and_recovers(services):
             assert Error.is_type(event.type)
             assert Error.from_event(event).code == "breeze_error"
         await asyncio.wait_for(disconnected.wait(), 1)
+        engine.warm_ready = True  # The fake backend is immediately available again.
         async with AsyncTcpClient("127.0.0.1", port) as client:
             await client.write_event(Synthesize(text="Recovered.").event())
             assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
@@ -370,6 +371,7 @@ async def test_backend_failure_is_terminal_and_releases_slot(services, text):
                 break
             await asyncio.sleep(0.01)
         assert not engine.admission.lock.locked()
+        engine.warm_ready = True  # The fake backend is immediately available again.
         async with client.ws_connect(base + "/v1/speech/stream") as next_ws:
             assert (await next_ws.receive_json())["type"] == "ready"
             await next_ws.send_json({"type": "start"})
@@ -379,6 +381,46 @@ async def test_backend_failure_is_terminal_and_releases_slot(services, text):
             assert (await next_ws.receive()).type == aiohttp.WSMsgType.BINARY
             done_gate.set()
             assert (await next_ws.receive_json())["type"] == "done"
+
+
+@pytest.mark.asyncio
+async def test_backend_recovery_warmup_gates_readiness_and_new_turns(services):
+    base, done_gate, _, engine = services
+    watcher = asyncio.create_task(watch_backend(engine, engine.settings, poll_seconds=0.01))
+    try:
+        async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
+            async with client.ws_connect(base + "/v1/speech/stream") as ws:
+                assert (await ws.receive_json())["type"] == "ready"
+                await ws.send_json({"type": "start"})
+                await ws.send_json({"type": "text", "text": "backend-drop"})
+                await ws.send_json({"type": "end"})
+                assert (await ws.receive_json())["type"] == "started"
+                assert (await ws.receive_json())["code"] == "backend"
+            async with client.get(base + "/readyz") as response:
+                assert response.status == 503
+            async with client.ws_connect(base + "/v1/speech/stream") as ws:
+                event = await ws.receive_json()
+                assert event["type"] == "error" and event["code"] == "backend"
+                assert event["message"] == "backend warming" and event["turn_id"]
+            done_gate.set()
+            for _ in range(100):
+                async with client.get(base + "/readyz") as response:
+                    if response.status == 200:
+                        break
+                await asyncio.sleep(0.01)
+            else:
+                pytest.fail("backend warmup did not restore readiness")
+            async with client.ws_connect(base + "/v1/speech/stream") as ws:
+                assert (await ws.receive_json())["type"] == "ready"
+                await ws.send_json({"type": "start"})
+                await ws.send_json({"type": "text", "text": "Recovered."})
+                await ws.send_json({"type": "end"})
+                assert (await ws.receive_json())["type"] == "started"
+                assert (await ws.receive()).type == aiohttp.WSMsgType.BINARY
+                assert (await ws.receive_json())["type"] == "done"
+    finally:
+        watcher.cancel()
+        await asyncio.gather(watcher, return_exceptions=True)
 
 
 @pytest.mark.asyncio

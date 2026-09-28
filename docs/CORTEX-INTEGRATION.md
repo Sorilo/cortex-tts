@@ -47,8 +47,10 @@ event with `code:protocol`; backend and transport failures use `code:backend`.
 
 Authenticated `GET /v1/voices` lists saved voice IDs. `POST /v1/voices`
 accepts multipart `name`, `ref_audio` WAV, and exact `ref_text`. The backend
-stores the encoded voice profile. `GET /readyz` checks backend availability,
-not post-restart shader/shape warmup. `GET /livez` only checks the wrapper.
+stores the encoded voice profile. `GET /readyz` checks backend availability
+and wrapper warmup state; it returns 503 during backend recovery rewarm. A new
+Cortex stream during that interval gets one terminal `code:backend` event with
+`message:backend warming` and no `ready` event. `GET /livez` only checks the wrapper.
 Authenticated `/v1/metrics` exposes
 counts and timing without utterance text or audio.
 

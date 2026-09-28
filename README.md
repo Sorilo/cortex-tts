@@ -41,9 +41,12 @@ runner instructions do not leak into the deployed binary. The wrapper warms shor
 ports (set `CORTEX_TTS_WARMUP=false` only for diagnostics). A cold restart took
 about 20 seconds to become ready in the local RTX 3080 test. Ordinary Python tests
 do not allocate a GPU.
-After a backend-only restart, `/readyz` may return healthy before shader/shape
-warmup; the first recovered turn took about 11 seconds to first PCM in the
-isolated test. Check audible startup separately after a restart.
+The wrapper watches for backend outages and re-runs the short/long synthesis
+warmup after recovery. `/readyz` stays unavailable during this rewarm, and
+new speech requests receive a backend-warming error until it completes. A
+local RTX 3080 test took about 24–26 seconds to return to readiness after
+an isolated backend-only restart, then first PCM arrived in 120 ms. This
+is recovery latency, not normal warm-request latency.
 `BREEZE_CHUNK_FIRST=2` and `BREEZE_CHUNK_MAX=25` are the provisional streaming
 defaults. The first value controls early PCM and how quickly an in-flight
 chunk can be cancelled; one-frame output needs more playback buffering and

@@ -147,6 +147,7 @@ class Engine:
         self.admission = Admission(settings.queue_limit, settings.queue_timeout)
         self.metrics = Metrics()
         self.client: aiohttp.ClientSession | None = None
+        self.warm_ready = True
 
     async def start(self) -> None:
         self.client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=None, sock_connect=5))

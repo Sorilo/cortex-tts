@@ -17,7 +17,7 @@ from wyoming.tts import Synthesize, SynthesizeChunk, SynthesizeStart, Synthesize
 from .config import Settings
 from .engine import BackendError, Busy, Engine, ProtocolError
 
-VERSION = "0.1.0-alpha.9"
+VERSION = "0.1.0-alpha.10"
 
 
 def info_event(voice_ids: list[str]) -> Event:
@@ -99,7 +99,11 @@ class Handler(AsyncEventHandler):
         audio_started = False
         begun = time.monotonic()
         try:
+            if not self.engine.warm_ready:
+                raise BackendError("backend warming")
             async with asyncio.timeout(self.settings.max_session_seconds), self.engine.admission:
+                if not self.engine.warm_ready:
+                    raise BackendError("backend warming")
                 async with self.engine.session() as backend:
                     self.engine.metrics.requests += 1
                     await backend.send({"type": "start",
@@ -140,7 +144,13 @@ class Handler(AsyncEventHandler):
                         await asyncio.gather(pump_task, return_exceptions=True)
         except asyncio.CancelledError:
             raise
-        except (BackendError, Busy, OSError, RuntimeError, ValueError, ProtocolError,
+        except BackendError as exc:
+            if self.settings.warmup:
+                self.engine.warm_ready = False
+            self.engine.metrics.failures += 1
+            if not self.writer.is_closing():
+                await self.write_event(Error(text=str(exc)[:160], code="breeze_error").event())
+        except (Busy, OSError, RuntimeError, ValueError, ProtocolError,
                 aiohttp.ClientError, TimeoutError) as exc:
             self.engine.metrics.failures += 1
             if not self.writer.is_closing():

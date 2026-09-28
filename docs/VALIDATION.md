@@ -44,7 +44,7 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 22 local tests pass. They cover Cortex
+- Python package compiles; 23 local tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   Wyoming stream timeout,
@@ -363,6 +363,25 @@ target playback client.
   was removed. This verifies profile persistence and discovery across stack
   lifetimes, while showing the first-use saved-clone latency/throughput cost.
   Local evidence is `evidence/local/published-alpha9-persistent-clone.json`.
+- The alpha.9 release exposed a restart-readiness gap: `/readyz` could be 200
+  before its first recovered synthesis incurred about 11.3 s of cold Vulkan
+  compilation. A local wrapper change now polls backend health, marks speech
+  unready after an outage or backend stream failure, serializes the existing
+  short/long warmup through the synthesis admission lock, and rejects new
+  turns while warming. One new fake-backend test verifies a 503 readiness
+  interval, a terminal backend-warming event for a new request, then restored
+  readiness and speech. The local 23-test suite passes. With the immutable
+  alpha.8 backend on the RTX 3080, an immediate midstream backend restart
+  still yielded one correlated `code:backend` event and zero later PCM;
+  `/readyz` returned 503 on 96 probes across 24.26 s of recovery, then the
+  next 111,360-byte turn began PCM in 120 ms and generated at 2.02× real
+  time. An idle backend restart similarly showed 99 unready probes across
+  26.16 s, followed by a completed 111,360-byte turn with 120 ms first PCM.
+  The watcher cannot prove detection of a restart too brief to be observed by
+  its one-second health poll, and the current sample sizes do not establish
+  a recovery-time SLA. Evidence is ignored under
+  `evidence/local/local-wrapper-rewarm-{restart,idle-restart}.json`; this
+  locally built wrapper still needs published-image verification.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

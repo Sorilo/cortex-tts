@@ -42,6 +42,25 @@ async def warm_backend(engine: Engine, settings: Settings) -> None:
     logging.info("Breeze warmup finished in %.3f s", time.monotonic() - begun)
 
 
+async def watch_backend(engine: Engine, settings: Settings, poll_seconds: float = 1.0) -> None:
+    """Rewarm after a backend outage without admitting cold client turns."""
+    while True:
+        await asyncio.sleep(poll_seconds)
+        if not await engine.health():
+            engine.warm_ready = False
+            continue
+        if engine.warm_ready:
+            continue
+        try:
+            async with engine.admission:
+                await warm_backend(engine, settings)
+            engine.warm_ready = True
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logging.exception("Breeze recovery warmup failed; retrying")
+
+
 async def serve() -> None:
     settings = Settings.from_env()
     if not settings.api_token:
@@ -50,20 +69,28 @@ async def serve() -> None:
     await engine.start()
     runner = None
     wyoming = None
+    watcher = None
     try:
         if settings.warmup:
+            engine.warm_ready = False
             await warm_backend(engine, settings)
+            engine.warm_ready = True
         runner = web.AppRunner(make_app(engine, settings))
         await runner.setup()
         site = web.TCPSite(runner, settings.api_host, settings.api_port)
         await site.start()
         wyoming = await start_wyoming(engine, settings)
+        if settings.warmup:
+            watcher = asyncio.create_task(watch_backend(engine, settings))
         stopped = asyncio.Event()
         loop = asyncio.get_running_loop()
         for signum in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(signum, stopped.set)
         await stopped.wait()
     finally:
+        if watcher:
+            watcher.cancel()
+            await asyncio.gather(watcher, return_exceptions=True)
         if wyoming:
             await wyoming.stop()
         if runner:

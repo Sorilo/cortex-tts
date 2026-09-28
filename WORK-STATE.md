@@ -68,3 +68,9 @@ isolated pinned Whisper base.en and recovered the intended words. These checks
 do not replace owner listening or real playback. Local files are ignored under
 `evidence/local/`. Only the `cortex-tts-incremental-check` test project may be
 stopped; other Cortex containers remain untouched.
+
+Follow-up varied-text soak: 80 additional Q4 turns with isolated pinned
+Whisper base.en resident completed over 257.2 s, emitting 523.2 s of PCM.
+Median/p95 TTFA was 187/196 ms; after the first corpus cycle, all turns were
+at least 1.91× real time. All three isolated containers had zero restarts.
+This supports sustained synthetic throughput, not physical playback quality.

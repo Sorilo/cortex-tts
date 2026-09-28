@@ -171,6 +171,16 @@ target playback client.
   `base.en` recovered the intended names, numbers, multi-piece text and long
   reply in eight probed outputs, allowing punctuation/spacing normalization.
   This is an intelligibility proxy, not a listening or clone-similarity score.
+- An additional 80-turn Q4 default-voice soak repeated the eight-case corpus
+  ten times with isolated pinned Wyoming Whisper `base.en` resident. All turns
+  completed, with no backend, wrapper or Whisper container restart. The run
+  produced 523.2 s of PCM over 257.2 s of client wall time; first-audio
+  median/p95 was 187/196 ms. First-cycle shape warmups included one 657 ms
+  first audio and a 1.16× real-time slowest turn. Across cycles 2–10, the
+  slowest turn was 1.91× real time. Whisper was resident, not actively
+  transcribing during this particular soak; the prior 100-turn repeated-text
+  run exercised active STT. This corpus remains synthetic and does not measure
+  physical-device underruns or human-rated speech quality.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

@@ -296,3 +296,19 @@ the owner review. `BREEZE_MODEL_FILE` now selects Q6/Q8 in an isolated Compose
 run while unset still defaults to Q4. Isolated containers and temporary tokens
 were removed. One stochastic sample per prompt cannot establish perceived
 quality; owner listening and physical Satellite validation remain open.
+
+Ran the same four-prompt listening corpus under active, pinned Wyoming
+`distil-small.en` STT for each published Q4/Q6/Q8 backend variant. Separate
+isolated Compose runs produced first-PCM median/max 153/216, 167/224 and
+158/224 ms; slowest generation 1.453×, 1.426× and 1.386×; sampled combined
+GPU peak 3,951/4,459/4,917 MiB. All twelve TTS turns completed with zero
+idealized zero-buffer underrun requests; 342/342 repeated STT probes exactly
+transcribed the synthetic timer WAV. Every isolated container had zero
+restarts, and temporary tokens/port override were removed. Q8 narrowly meets
+the 5 GiB combined target in this workload; none guarantees the preferred
+1.5× floor. Added `scripts/benchmark_active_stt.py` as a reproducible
+concurrency/VRAM measurement helper. See `docs/VALIDATION.md`; owner sound
+judgment and physical Satellite playback remain open.
+The tracked helper was also exercised on one published Q4 prompt with active
+distil-small STT: it captured TTS, ten memory samples and 12/12 expected
+transcripts. Its isolated stack was stopped and temporary token removed.

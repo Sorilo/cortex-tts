@@ -178,6 +178,34 @@ target playback client.
   model sampling was not seed-controlled and physical speaker behavior is
   still unmeasured. The isolated stack was stopped between models and after
   Q8, and its temporary token was removed.
+- A matched active-STT comparison used the same four complete-message prompts
+  on each published Q4/Q6/Q8 backend variant while a separate pinned
+  LinuxServer Wyoming `distil-small.en` container repeatedly transcribed the
+  same synthetic 4.16 s timer WAV. A loopback-only port on that isolated STT
+  container was used; no `cortex-dev` container was operated. Results were:
+
+  | Model | First PCM median/max | Slowest generation | STT transcripts | Sampled combined peak |
+  | --- | --- | --- | --- | --- |
+  | Q4_K | 153/216 ms | 1.453× | 112/112 exact | 3,951 MiB |
+  | Q6_K | 167/224 ms | 1.426× | 115/115 exact | 4,459 MiB |
+  | Q8_0 | 158/224 ms | 1.386× | 115/115 exact | 4,917 MiB |
+
+  Each model completed all four TTS turns with zero idealized zero-buffer
+  underrun requests and zero container restarts. With four TTS samples per
+  model, the reported p95 is the maximum. `nvidia-smi` was sampled about every
+  0.2 s (97/99/100 samples for Q4/Q6/Q8), so these are observed peaks, not
+  proven maxima. All three stayed under the 5 GiB (5,120 MiB) combined target
+  in this short run, but none kept *every* turn above the preferred 1.5×
+  throughput. Q8 leaves only 203 MiB below that target; a future reranker and
+  embedding model were not loaded. The ignored summaries are
+  `evidence/local/active-distil-{q4,q6,q8}-summary.json`, with per-turn JSON
+  and WAVs in corresponding directories. `scripts/benchmark_active_stt.py`
+  captures the same concurrent corpus/probe/memory method for repetition; its
+  published-image one-case Q4 smoke completed TTS, captured ten GPU samples
+  and returned 12/12 exact STT transcripts in an isolated stack that was
+  removed afterward.
+  These loopback measurements do not establish audio quality or Satellite
+  playback continuity.
 - The digest-pinned **alpha.5** published backend and wrapper passed an isolated
   Compose smoke on this RTX 3080: backend Vulkan0, zero restarts, wrapper
   `/readyz` healthy after 21.8 s startup warmup, Cortex PCM streamed, and

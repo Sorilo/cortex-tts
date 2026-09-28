@@ -41,3 +41,13 @@ three runs, execute `python scripts/prepare_listening_pack.py` to make the
 volume-matched copies. Supply `--source-commit`, `--backend-image` and
 `--wrapper-image` to embed the tested provenance in the local manifest. The
 release Compose default remains Q4 when `BREEZE_MODEL_FILE` is unset.
+
+The matching four-prompt Q4/Q6/Q8 run with actively transcribing
+`distil-small.en` is recorded in `docs/VALIDATION.md`. The tracked
+`scripts/benchmark_active_stt.py` repeats that concurrent method against an
+already-running isolated Breeze/Whisper stack. Expose only the isolated
+Whisper container's TCP port 10300 on a temporary loopback port, then pass
+`--stt-port`, `--probe-wav`, `--expected-transcript`, `--quant`, `--output-dir`
+and `--output`. Set `BREEZE_GPU_DEVICE` or pass `--gpu-device` so VRAM samples
+come from the TTS/STT GPU on a multi-GPU host. It never starts or stops
+containers itself.

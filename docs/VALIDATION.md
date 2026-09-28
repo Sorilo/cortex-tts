@@ -44,6 +44,27 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- With other development paused, an isolated remote-only run used the current
+  digest-pinned alpha.8/Q4 backend and alpha.13 wrapper on the dev RTX 3080,
+  loopback ports 18085/10225, and a temporary token/voice volume. The eight
+  complete-message corpus cases completed with first-PCM median/p95
+  125/423 ms, minimum generation 1.395× real time, and zero idealized
+  zero-buffer underrun requests. The minimum was above real time but below the
+  preferred 1.5×. Five cancel/fresh-turn pairs had cancel-ack median/p95
+  115/124 ms, zero PCM after cancel, and five successful fresh turns. A real
+  Wyoming client confirmed discovery, legacy synthesis, and streaming audio
+  before `synthesize-stop`. An isolated synthetic Core server provided
+  authorized `speech_text` to the trusted client, which forwarded seven PCM
+  packets before TTS completion. A synthetic callback-triggered barge-in
+  acknowledged TTS cancel in 119 ms, invoked no Core interrupt, and left a
+  subsequent authorized turn working. Wrapper metrics ended at 26 requests,
+  zero failures and six cancellations; both containers had zero restarts.
+  Backend logs identified the RTX 3080 Vulkan device, and one idle sample
+  showed 3,064 MiB total GPU use. Ignored JSON/WAV evidence is under
+  `evidence/local/remote-pause-20260928-*`. The dedicated stack, token and
+  voices were removed. This verifies remote transport and modeled continuity
+  only: no voice HA pipeline, LVA, Pi, physical speaker, room routing or
+  active Whisper was used in this run.
 - The runnable Cortex streaming client now accepts a mid-session
   `--instruction-after-first` update and requires one correlated
   `instruction_set` acknowledgement. Two synthetic phrases were sent through

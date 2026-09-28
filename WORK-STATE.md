@@ -448,3 +448,23 @@ the token-authenticated API on loopback by default; existing shared-bind
 configurations retain their behavior when the new variable is unset. Local
 release and development Compose renders confirmed both binding cases, and CI
 now asserts the split release binding. No TTS or HA containers were started.
+
+During the owner's pause in other development on 2026-09-28, ran a new
+remote-only acceptance subset against the current digest-pinned alpha.8/Q4
+backend and alpha.13 wrapper on the dev RTX 3080. The test used its own
+Compose project, loopback ports 18085/10225, temporary token and voices.
+An eight-case complete-message corpus had 125/423 ms first-PCM median/p95,
+minimum 1.395× generation speed, and no idealized zero-buffer underrun
+requests. Five cancel/fresh-turn pairs had 115/124 ms cancel-ack median/p95,
+no PCM after cancel and five completed fresh turns. Real Wyoming discovery,
+legacy synthesis and streaming audio before `synthesize-stop` passed. A
+synthetic Core result drove the published Cortex stream and seven progressive
+PCM callbacks; a separate synthetic barge-in sent TTS cancel (119 ms ack),
+made no Core interrupt call and permitted a fresh authorized turn. Wrapper
+metrics showed 26 requests, zero failures, six cancellations, and no active
+or queued request. Both containers had zero restarts; backend log identified
+the RTX 3080 Vulkan device; one idle sample showed 3,064 MiB total GPU use.
+Ignored evidence is under `evidence/local/remote-pause-20260928-*`. The
+temporary project, token and voices were removed, returning GPU use to 1 MiB.
+This is remote transport evidence, not HA/LVA routing or audible Satellite
+playback evidence; active Whisper coexistence was not repeated in this run.

@@ -151,7 +151,7 @@ target playback client.
   showed `cancelled:1`, `failures:0`, `active:false`, `queued:0`. A fresh next
   turn produced 188,160 PCM bytes and completed normally. This verifies the
   cancellation fix in the published wrapper, not only in the local tests.
-- The current release Compose retains the verified alpha.5 backend and pins the
+- The earlier release Compose retained the verified alpha.5 backend and pinned the
   published alpha.7 wrapper OCI index
   `sha256:1afd3d6d1b45cad446e89404712212a9601432d3e1d734f71e5b1fc211280ce1`.
   Alpha.7's CI tests and image publication passed. An isolated published-image
@@ -266,6 +266,27 @@ target playback client.
   Active `base.en` transcribed 60/60 commands and observed peak memory was
   3,684 MiB. Two frames is the provisional default pending physical playback
   and human listening; one frame remains an opt-in experiment.
+- Alpha.8 source tests and image publication passed for commit
+  `d92d270c9524ff516a6adc111596be90fc44d5f1`. Current release Compose pins
+  the published alpha.8 backend OCI index
+  `sha256:c8b2411666e60b76665f694f3f8c9d6bcf01a20f845f6dee33a1bbf28cd46a67`
+  with the previously verified alpha.7 wrapper index
+  `sha256:1afd3d6d1b45cad446e89404712212a9601432d3e1d734f71e5b1fc211280ce1`.
+  The published backend's image command and the isolated release Compose both
+  use `--chunk-first 2 --chunk-max 25`. On the RTX 3080, this exact published
+  pair passed readiness and Wyoming synthesis (AudioStart, five AudioChunks,
+  AudioStop; 84,480 PCM bytes). An eight-case fresh Q4 combined-message corpus
+  had first-PCM median/p95 124/303 ms, minimum 1.567× real-time generation,
+  and zero idealized zero-buffer underrun requests. Twenty cancel-after-first-
+  audio/fresh-turn pairs had cancel median/p95 115.5/121.8 ms, maximum
+  121.9 ms, zero PCM received after each cancel request and 20/20 completed
+  recoveries. Metrics after the corpus and pairs showed 48 requests, 20
+  cancellations, zero failures, no active or queued request. Both containers
+  had zero restarts; the backend owned about 2,957 MiB of GPU memory. These
+  checks establish the shipped digest pair's synthetic behavior, not physical
+  Satellite playback or human-rated sound quality. Reproduction output is
+  ignored under `evidence/local/corpus-published-alpha8-q4-cold-combined/`
+  and `evidence/local/cancel-published-alpha8-q4-20.json`.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

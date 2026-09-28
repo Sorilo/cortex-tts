@@ -126,5 +126,17 @@ cancel p95 further to 93 ms under STT load, but introduced extra modeled
 zero-buffer gaps in warm combined and cold split-message speech; a 0.32 s
 fill removed warm combined gaps in simulation. Set the provisional default to
 two frames in backend Dockerfile and both Compose files; expose first/max
-chunk settings in `.env.example`. Publish/pin/verify a new immutable backend
-image, then revisit audible quality and real playback on Satellite.
+chunk settings in `.env.example`. The next gate is audible quality and real
+playback on Satellite.
+
+Alpha.8 backend published at OCI index
+`sha256:c8b2411666e60b76665f694f3f8c9d6bcf01a20f845f6dee33a1bbf28cd46a67`.
+Release Compose now pins it with the verified alpha.7 wrapper index
+`sha256:1afd3d6d1b45cad446e89404712212a9601432d3e1d734f71e5b1fc211280ce1`.
+The exact pair passed isolated RTX 3080 readiness, Wyoming output, a fresh
+eight-case combined-message corpus (first PCM median/p95 124/303 ms, minimum
+1.567× speed, zero modeled underrun requests) and 20 cancel/recovery pairs
+(cancel median/p95 115.5/121.8 ms, maximum 121.9 ms; 20/20 recoveries).
+No other Cortex deployment was changed. See docs/ROLLBACK.md for digest-pinned
+fallback. Human listening, physical Satellite playback and Core integration
+remain open gates; retain the active goal.

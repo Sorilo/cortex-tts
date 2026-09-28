@@ -1,7 +1,7 @@
 name: cortex-tts-release
 services:
   breeze-backend:
-    image: ghcr.io/sorilo/cortex-tts-backend@sha256:0ace2780f6a5b4f47fe4ca5b977db83c09e51bdd38f4c9a5a1f6df023262e65e
+    image: ghcr.io/sorilo/cortex-tts-backend@sha256:c8b2411666e60b76665f694f3f8c9d6bcf01a20f845f6dee33a1bbf28cd46a67
     command:
       - /models/breeze-tts-2-q4_k.gguf
       - --host

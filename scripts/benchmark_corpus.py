@@ -8,7 +8,7 @@ import statistics
 from pathlib import Path
 from types import SimpleNamespace
 
-from stream_client import run
+from stream_client import PLAYBACK_THRESHOLDS, run
 
 
 async def benchmark(args: argparse.Namespace) -> dict:
@@ -38,6 +38,26 @@ async def benchmark(args: argparse.Namespace) -> dict:
         "minimum_generation_x_realtime": min(speed),
         "incomplete": sum(not row["complete"] for row in rows),
         "early_audio_cases": sum(row["first_audio_before_end"] for row in rows),
+        "largest_chunk_gap_seconds": max(row["largest_chunk_gap_seconds"] for row in rows),
+        "ideal_zero_buffer_underrun_requests": sum(bool(row["ideal_zero_buffer_underruns"]) for row in rows),
+        "ideal_zero_buffer_underruns_total": sum(row["ideal_zero_buffer_underruns"] for row in rows),
+        "ideal_zero_buffer_underrun_seconds_total": sum(
+            row["ideal_zero_buffer_underrun_seconds"] for row in rows),
+        "playback_simulation": {
+            threshold: {
+                "underrun_requests": sum(bool(row["playback_simulation"][threshold]["underruns"])
+                                          for row in rows),
+                "underruns_total": sum(row["playback_simulation"][threshold]["underruns"]
+                                       for row in rows),
+                "playback_start_median_s": statistics.median(
+                    row["playback_simulation"][threshold]["playback_start_seconds"]
+                    for row in rows),
+                "playback_start_p95_s": sorted(
+                    row["playback_simulation"][threshold]["playback_start_seconds"]
+                    for row in rows)[round((len(rows) - 1) * 0.95)],
+            }
+            for threshold in map(str, PLAYBACK_THRESHOLDS)
+        },
         "results": rows,
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)

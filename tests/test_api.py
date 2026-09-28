@@ -19,8 +19,20 @@ from wyoming.tts import Synthesize, SynthesizeStart, SynthesizeChunk, Synthesize
 from wyoming.audio import AudioChunk, AudioStart, AudioStop
 from wyoming.error import Error
 
-run_stream_client = run_path(str(Path(__file__).resolve().parents[1] /
-                                 "scripts/stream_client.py"))["run"]
+stream_client = run_path(str(Path(__file__).resolve().parents[1] /
+                             "scripts/stream_client.py"))
+run_stream_client = stream_client["run"]
+
+
+def test_playback_fill_level_simulation():
+    packets = [(0.2, 0.32), (0.7, 0.4), (1.1, 0.8)]
+    first_packet = stream_client["simulate_playback"](packets, 0, 2.0)
+    buffered = stream_client["simulate_playback"](packets, 0.64, 2.0)
+    assert first_packet["playback_start_seconds"] == 0.2
+    assert first_packet["underruns"] == 1
+    assert first_packet["underrun_seconds"] == pytest.approx(0.18)
+    assert buffered["playback_start_seconds"] == 0.7
+    assert buffered["underruns"] == 0
 
 
 @pytest.fixture
@@ -130,6 +142,9 @@ async def test_stream_client_receives_audio_before_later_text(services, monkeypa
     assert result["complete"] and result["bytes"] == 400
     assert result["first_audio_before_last_text"]
     assert result["first_audio_before_end"]
+    assert result["ideal_zero_buffer_underruns"] == 1
+    assert result["ideal_zero_buffer_underrun_seconds"] > 0.05
+    assert result["largest_chunk_gap_seconds"] > 0.05
 
 
 @pytest.mark.asyncio

@@ -21,8 +21,16 @@ The server returns `ready` with `version:1`, `turn_id`, `sample_rate:24000`,
 
 The server forwards Breeze's `started`, `speaking`, `queued`,
 `instruction_set`, `cancelled`, `done`, and `error` events with `turn_id`.
-Binary frames are playable PCM; a client should start playback on the first
-binary frame rather than wait for `done`. An error or closed socket ends the
+Binary frames are playable PCM; feed them into a playback queue as they arrive,
+without waiting for `done`. Start the device when the queue reaches a measured
+fill level, and adapt if it runs dry. Starting on the first frame minimizes
+audible latency but can underrun on a first-seen text shape; buffering costs
+audible latency. In the isolated Q4 cold-shape corpus, two of eight requests
+underran in a zero-buffer simulation; a 1.25 s fill still underran, while a
+2.0 s fill avoided those simulated gaps but began playback at median/p95
+1.20/2.42 s. Those are local model results, not a Satellite setting. The
+physical playback client must measure queue depth, first audible sound and
+rebuffers before choosing its policy. An error or closed socket ends the
 stream. The server admits one GPU synthesis session and a bounded waiting
 queue. A busy request gets an `error` event with `code:busy`. Invalid JSON,
 out-of-order input, and unsupported client messages get one terminal `error`
@@ -42,7 +50,8 @@ counts and timing without utterance text or audio.
 2. In the voice-facing HA adapter at
    `cortex-deploy/config/custom_components/cortex_assist/__init__.py`, use the
    authoritative speech returned by Core. Arrange client playback to consume
-   PCM frames as they arrive; a complete WAV response defeats streaming TTFA.
+   PCM frames as they arrive into a measured playback queue; a complete WAV
+   response defeats streaming TTFA.
 3. Correlate the Core turn ID with the TTS stream at the caller, and propagate
    playback stop to TTS `cancel`/disconnect. Route any action interruption
    through Core's existing interrupt API separately.

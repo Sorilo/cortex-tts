@@ -59,6 +59,10 @@ performs phrase splitting. `text` can be sent as the LLM produces it; `flush`
 forces a waiting phrase. The first playable audio is binary 24 kHz mono signed
 16-bit little-endian PCM. `cancel` stops the current backend session and clears
 its buffered text. A client disconnect closes the backend socket.
+The first PCM packet is available before synthesis completes, but immediate
+device playback can underrun on a first-seen text shape. Buffer by measured
+PCM fill level and validate audible latency and rebuffers on the target device;
+see [docs/CORTEX-INTEGRATION.md](docs/CORTEX-INTEGRATION.md).
 
 Saved cloned voices are created via authenticated `POST /v1/voices` with
 `name`, `ref_audio` WAV, and exact `ref_text`. A saved voice ID is selectable in

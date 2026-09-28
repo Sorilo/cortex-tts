@@ -35,21 +35,24 @@ audio and generated-audio-to-wall-time ratio; the latter includes deliberate
 input delays and is a smoke metric. `scripts/benchmark_queue.py` measures
 ready-event delay while one GPU slot is occupied. `scripts/benchmark_corpus.py`
 runs the versioned synthetic text corpus and saves local WAVs and per-turn JSON.
-`scripts/benchmark_stream.py` compares direct and wrapped paths,
+The corpus client also models zero-buffer and several fill-level playback cases
+from observed PCM packet times; simulated playback start is distinct from first
+packet arrival. `scripts/benchmark_stream.py` compares direct and wrapped paths,
 records first audio, throughput and chunk gaps in ignored `evidence/local/`.
 It does not yet infer actual playback buffer underruns; measure those with the
 target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 20 local fake-backend tests pass. They cover Cortex
+- Python package compiles; 21 local tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   Wyoming stream timeout,
   terminal backend errors and abrupt backend disconnects, recovery after both
   failures, busy-slot isolation, queued admission order, a concurrently
   sending streaming client, and single terminal protocol errors for malformed
-  JSON, out-of-order text and unknown message types.
+  JSON, out-of-order text and unknown message types, plus the playback
+  fill-level simulation used by the corpus benchmark.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.
 - Pinned Q4, Q6 and Q8 GGUF files plus official codec downloaded and SHA-256
@@ -192,6 +195,21 @@ target playback client.
   transcribing during this particular soak; the prior 100-turn repeated-text
   run exercised active STT. This corpus remains synthetic and does not measure
   physical-device underruns or human-rated speech quality.
+- Packet-level timing on the current alpha.7-wrapper/alpha.5-backend published
+  pair exposed a remaining continuity tradeoff. In two independent eight-case
+  first-shape runs after separate backend restarts, the weather and
+  multi-sentence cases each had one idealized zero-buffer underrun. One run's
+  largest packet gap was 2.76 s; its total modeled underrun was 1.47 s. A
+  1.25 s fill still left both requests with a modeled underrun. A 2.0 s fill
+  eliminated them in that run, but raised modeled playback start to median/p95
+  1.20/2.42 s. A separate 16-turn shape-warm run had zero modeled underruns
+  at every tested fill level; immediate-playback median/p95 first packet was
+  187/194 ms, while a 1.0 s fill began at 719/760 ms. The local client models
+  ideal PCM scheduling only. It does not account for device jitter, playback
+  implementation or arbitrary novel text shapes. Thus first-packet latency
+  passes its warm target in these runs, but low-latency *audible* playback with
+  no underruns remains unproven and may require a larger buffer or backend
+  first-shape optimization.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

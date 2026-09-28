@@ -11,6 +11,36 @@ from pathlib import Path
 
 import aiohttp
 
+PLAYBACK_THRESHOLDS = (0.0, 0.32, 0.64, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0)
+
+
+def simulate_playback(packets: list[tuple[float, float]], threshold_seconds: float,
+                      completed_seconds: float) -> dict:
+    """Model a PCM queue that starts once its fill level reaches a threshold."""
+    if threshold_seconds < 0:
+        raise ValueError("playback threshold must be nonnegative")
+    buffered = 0.0
+    playback_end = None
+    playback_start = None
+    underruns = 0
+    underrun_seconds = 0.0
+    for arrival, duration in packets:
+        if playback_start is None:
+            buffered += duration
+            if buffered >= threshold_seconds:
+                playback_start = arrival
+                playback_end = arrival + buffered
+        elif arrival > playback_end:
+            underruns += 1
+            underrun_seconds += arrival - playback_end
+            playback_end = arrival + duration
+        else:
+            playback_end += duration
+    if playback_start is None and packets:
+        playback_start = completed_seconds
+    return {"playback_start_seconds": playback_start,
+            "underruns": underruns, "underrun_seconds": underrun_seconds}
+
 
 async def run(args: argparse.Namespace) -> dict:
     headers = {"Authorization": "Bearer " + os.environ["CORTEX_TTS_TOKEN"]}
@@ -25,6 +55,12 @@ async def run(args: argparse.Namespace) -> dict:
     last_text_sent = None
     end_sent = None
     ready_seconds = None
+    last_chunk_at = None
+    largest_chunk_gap = 0.0
+    ideal_playback_end = None
+    ideal_underruns = 0
+    ideal_underrun_seconds = 0.0
+    packets = []
     async with aiohttp.ClientSession(headers=headers) as client:
         async with client.ws_connect(
             args.url, heartbeat=20,
@@ -56,8 +92,24 @@ async def run(args: argparse.Namespace) -> dict:
             try:
                 async for message in ws:
                     if message.type == aiohttp.WSMsgType.BINARY:
+                        if len(message.data) % 2:
+                            raise RuntimeError("odd-length PCM")
+                        arrived = time.monotonic()
                         if first_audio is None:
-                            first_audio = time.monotonic() - started
+                            first_audio = arrived - started
+                        if last_chunk_at is not None:
+                            largest_chunk_gap = max(largest_chunk_gap, arrived - last_chunk_at)
+                        last_chunk_at = arrived
+                        duration = len(message.data) / 48000
+                        packets.append((arrived - started, duration))
+                        if ideal_playback_end is None:
+                            ideal_playback_end = arrived + duration
+                        elif arrived > ideal_playback_end:
+                            ideal_underruns += 1
+                            ideal_underrun_seconds += arrived - ideal_playback_end
+                            ideal_playback_end = arrived + duration
+                        else:
+                            ideal_playback_end += duration
                         pcm.extend(message.data)
                         if cancel_sent is not None:
                             audio_bytes_after_cancel += len(message.data)
@@ -92,6 +144,8 @@ async def run(args: argparse.Namespace) -> dict:
             if not complete and cancel_ack_seconds is None:
                 raise RuntimeError("stream closed before completion")
     elapsed = time.monotonic() - started
+    playback = {str(threshold): simulate_playback(packets, threshold, elapsed)
+                for threshold in PLAYBACK_THRESHOLDS}
     if args.output and pcm:
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +159,10 @@ async def run(args: argparse.Namespace) -> dict:
             "elapsed_seconds": elapsed, "audio_seconds": len(pcm) / 48000,
             "generation_x_realtime": (len(pcm) / 48000) / elapsed if elapsed else 0,
             "bytes": len(pcm), "complete": complete,
+            "largest_chunk_gap_seconds": largest_chunk_gap,
+            "ideal_zero_buffer_underruns": ideal_underruns,
+            "ideal_zero_buffer_underrun_seconds": ideal_underrun_seconds,
+            "playback_simulation": playback,
             "first_text_sent_seconds": first_text_sent,
             "last_text_sent_seconds": last_text_sent,
             "text_send_span_seconds": (

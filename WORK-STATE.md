@@ -83,3 +83,14 @@ release Compose now pins it. Alpha.7 CI and image publication passed. An
 isolated published-image Q4 smoke returned one protocol error and a clean next
 turn, with `failures:1`, zero restarts and backend GPU residency. Earlier
 latency distributions are from alpha.6 and should not be relabeled alpha.7.
+
+Continuity finding: added packet-timed fill-level playback simulation to the
+stream client and varied-corpus benchmark (21 local tests now pass). Two
+independent alpha.7/Q4 first-shape eight-case runs after separate backend
+restarts each showed idealized underruns in weather and multi-sentence turns.
+A measured 1.25 s fill did not eliminate both; a 2.0 s fill eliminated them
+in one run but modeled median/p95 audible start at 1.20/2.42 s. A later
+16-turn shape-warm run had no modeled underruns even at zero buffer. Physical
+playback and low-latency audible starts remain unresolved. Use a measured
+fill-level queue in the future Cortex playback client; do not claim first PCM
+arrival is equivalent to sound from the device.

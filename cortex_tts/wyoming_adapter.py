@@ -17,17 +17,19 @@ from wyoming.tts import Synthesize, SynthesizeChunk, SynthesizeStart, Synthesize
 from .config import Settings
 from .engine import Busy, Engine, ProtocolError
 
+VERSION = "0.1.0-alpha.1"
+
 
 def info_event(voice_ids: list[str]) -> Event:
     attribution = Attribution(name="cortex-tts", url="https://github.com/Sorilo/cortex-tts")
     voices = [TtsVoice(name="breeze-design", attribution=attribution, installed=True,
-                       description="Breeze voice design", version="0.1.0", languages=["en", "zh"])]
+                       description="Breeze voice design", version=VERSION, languages=["en", "zh"])]
     voices += [TtsVoice(name=voice, attribution=attribution, installed=True,
-                        description="Saved Breeze reference voice", version="0.1.0",
+                        description="Saved Breeze reference voice", version=VERSION,
                         languages=["en", "zh"]) for voice in voice_ids]
     return Info(tts=[TtsProgram(name="cortex-tts", attribution=attribution,
                                 installed=True, description="Streaming Breeze TTS 2",
-                                version="0.1.0", voices=voices,
+                                version=VERSION, voices=voices,
                                 supports_synthesize_streaming=True)]).event()
 
 

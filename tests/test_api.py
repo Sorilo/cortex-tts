@@ -216,3 +216,12 @@ async def test_cancel_discards_pending_audio_and_frees_slot(services):
             await asyncio.sleep(0.01)
         assert not engine.admission.lock.locked()
         assert not done_gate.is_set()
+        async with client.ws_connect(base + "/v1/speech/stream") as next_ws:
+            assert (await next_ws.receive_json())["type"] == "ready"
+            await next_ws.send_json({"type": "start"})
+            await next_ws.send_json({"type": "text", "text": "Fresh turn."})
+            await next_ws.send_json({"type": "end"})
+            assert (await next_ws.receive_json())["type"] == "started"
+            assert (await next_ws.receive()).type == aiohttp.WSMsgType.BINARY
+            done_gate.set()
+            assert (await next_ws.receive_json())["type"] == "done"

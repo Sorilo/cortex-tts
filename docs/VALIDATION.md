@@ -49,3 +49,5 @@ detect playback buffer underruns under sustained generation.
   These timings are CPU compatibility evidence, not GPU performance evidence.
 - Real GPU model, Whisper coexistence, listening, soak, and physical playback
   remain pending and must not be represented as passed.
+- Initial GitHub Actions wrapper test/Compose workflow passed at
+  `8f4291087b082a218452b7f743354d0dab17717d`.

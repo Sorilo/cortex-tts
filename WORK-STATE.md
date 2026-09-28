@@ -21,3 +21,7 @@ Remaining: GPU performance/quality, Whisper coexistence, listening, soak and
 physical integration. Existing `cortex-dev` containers are active; a blank GPU
 compute-process snapshot is not exclusive access. Inspect current state before
 updating or running on GPU.
+
+GitHub repository: https://github.com/Sorilo/cortex-tts. First pushed commit
+`8f4291087b082a218452b7f743354d0dab17717d`; initial remote CI passed.
+An alpha image tag is planned after the next commit passes CI.

@@ -47,7 +47,7 @@ async def run(args: argparse.Namespace) -> dict:
     try:
         corpus = await benchmark(SimpleNamespace(
             corpus=args.corpus, output_dir=args.output_dir, iterations=1,
-            url=args.url, voice="", instruction="Speak clearly and naturally.",
+            url=args.url, voice=args.voice, instruction=args.instruction,
             combine_pieces=True, piece_delay_ms=0, flush_each=False,
             timeout=args.timeout,
         ))
@@ -59,6 +59,8 @@ async def run(args: argparse.Namespace) -> dict:
     expected = args.expected_transcript.strip()
     return {
         "quant": args.quant,
+        "voice": args.voice,
+        "instruction": args.instruction,
         "gpu_device": args.gpu_device,
         "tts_count": corpus["count"],
         "tts_first_pcm_median_s": corpus["ttfa_median_s"],
@@ -77,6 +79,9 @@ async def run(args: argparse.Namespace) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--quant", required=True)
+    parser.add_argument("--voice", default="", help="Saved voice ID; empty for voice design")
+    parser.add_argument("--instruction", default="Speak clearly and naturally.",
+                        help="Voice design or per-request delivery direction")
     parser.add_argument("--gpu-device", default=os.getenv("BREEZE_GPU_DEVICE"),
                         help="NVIDIA GPU index or UUID; defaults to BREEZE_GPU_DEVICE")
     parser.add_argument("--url", default="ws://127.0.0.1:18084/v1/speech/stream")

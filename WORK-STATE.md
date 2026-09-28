@@ -397,3 +397,17 @@ restarts. This meets the 25 ms p95 target for this workload only; active-STT,
 diverse-text, and physical playback overhead remain unmeasured. Detailed
 ignored JSON and limitations are in `docs/VALIDATION.md`. The isolated stack,
 loopback port, token and voice directory were removed.
+
+Extended the active-STT benchmark helper with `--voice` and `--instruction`.
+Ran current published Q4 alpha.8-backend/alpha.13-wrapper with isolated pinned
+`distil-small.en` actively transcribing throughout three four-prompt expressive
+modes. A known-text synthetic 3.52 s reference was generated and uploaded as
+`synthetic_active13`. Design/clone/directed-clone first-PCM medians were
+136/188/179 ms; sampled combined peaks 3,972/3,958/3,960 MiB; all modes
+generated above real time with zero idealized underrun requests and 325/325
+exact STT probes. The clone's first long-reply PCM took 2,411 ms; an exact
+active-STT repeat took 231 ms and added 70/70 exact probes. All three
+containers had zero restarts and wrapper metrics showed zero failures.
+See `docs/VALIDATION.md` for exact pins and limits. The isolated stack, token,
+temporary ports, and synthetic profile were removed. Human expressive-quality
+judgment and physical playback remain open.

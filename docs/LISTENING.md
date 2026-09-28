@@ -62,3 +62,23 @@ Whisper container's TCP port 10300 on a temporary loopback port, then pass
 and `--output`. Set `BREEZE_GPU_DEVICE` or pass `--gpu-device` so VRAM samples
 come from the TTS/STT GPU on a multi-GPU host. It never starts or stops
 containers itself.
+
+## Expressive voice review
+
+The ignored `evidence/local/active-expressive-reference.wav` is a synthetic
+reference spoken from the exact text “Hello, this is a synthetic reference voice
+for Cortex.” In an isolated current-release Q4 run, the same four prompts from
+`benchmarks/listening_corpus.json` were generated as reference-free design,
+saved synthetic clone, and directed saved clone. Their WAVs are under ignored
+`evidence/local/active-expressive-{design,clone,directed-clone}/` with names
+such as `numbers-1.wav` and `long_reply-1.wav`. The design instruction was
+“A warm, calm voice with a gentle smile.” The direction for the clone was
+“Speak softly, with reassuring warmth and a slightly slower pace.”
+
+Listen to the reference, then compare the same prompt across the three modes.
+For clone, judge whether the character of the reference carries through; for
+direction, judge whether warmth and pace change while the words remain clear.
+Check names, numbers, phrase joins, and long-reply consistency. These files
+were generated under active Whisper and are one stochastic sample per prompt,
+not a human score. `docs/VALIDATION.md` records the timing and GPU limits;
+human clone-similarity and direction judgments remain open.

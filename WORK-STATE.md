@@ -12,7 +12,7 @@ owns bounded admission, protocol adaptation and session lifetime. Vulkan is
 the initial backend because upstream reports it faster than CUDA for this
 implementation's small per-frame graphs.
 
-Independent evidence: 13 fake-backend/transport tests; Compose config;
+Independent evidence: 14 fake-backend/transport tests; Compose config;
 wrapper and pinned Vulkan backend builds; runtime `ldd`; SHA-256 verified Q4
 and codec files; CPU-only real-Q4 HTTP/Cortex/Wyoming streaming and synthetic
 saved-voice cloning. See docs/VALIDATION.md for measured CPU timings.

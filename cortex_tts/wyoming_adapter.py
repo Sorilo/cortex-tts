@@ -17,7 +17,7 @@ from wyoming.tts import Synthesize, SynthesizeChunk, SynthesizeStart, Synthesize
 from .config import Settings
 from .engine import Busy, Engine, ProtocolError
 
-VERSION = "0.1.0-alpha.2"
+VERSION = "0.1.0-alpha.4"
 
 
 def info_event(voice_ids: list[str]) -> Event:
@@ -99,7 +99,7 @@ class Handler(AsyncEventHandler):
         audio_started = False
         begun = time.monotonic()
         try:
-            async with self.engine.admission:
+            async with asyncio.timeout(self.settings.max_session_seconds), self.engine.admission:
                 async with self.engine.session() as backend:
                     self.engine.metrics.requests += 1
                     await backend.send({"type": "start",

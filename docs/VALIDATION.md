@@ -37,9 +37,10 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 13 local fake-backend tests pass. They cover Cortex
+- Python package compiles; 14 local fake-backend tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
+  Wyoming stream timeout,
   terminal backend errors and abrupt backend disconnects.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.

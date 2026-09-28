@@ -14,6 +14,7 @@ from wyoming.client import AsyncTcpClient
 from wyoming.info import Describe, Info
 from wyoming.tts import Synthesize, SynthesizeStart, SynthesizeChunk, SynthesizeStop, SynthesizeStopped
 from wyoming.audio import AudioChunk, AudioStart, AudioStop
+from wyoming.error import Error
 
 
 @pytest.fixture
@@ -191,6 +192,26 @@ async def test_wyoming_incremental_text_before_stop(services):
             done_gate.set()
             assert AudioStop.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
             assert SynthesizeStopped.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+    finally:
+        await wyoming.stop()
+
+
+@pytest.mark.asyncio
+async def test_wyoming_stream_without_stop_times_out_and_releases_backend(services):
+    _, _, disconnected, engine = services
+    wyoming = await start_wyoming(engine, Settings(**{**engine.settings.__dict__,
+                                                       "wyoming_host": "127.0.0.1", "wyoming_port": 0,
+                                                       "max_session_seconds": 0.05}))
+    try:
+        port = wyoming._server.sockets[0].getsockname()[1]
+        async with AsyncTcpClient("127.0.0.1", port) as client:
+            await client.write_event(SynthesizeStart().event())
+            await client.write_event(SynthesizeChunk(text="Hello.").event())
+            assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert AudioChunk.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert Error.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+        await asyncio.wait_for(disconnected.wait(), 1)
+        assert not engine.admission.lock.locked()
     finally:
         await wyoming.stop()
 

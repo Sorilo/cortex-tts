@@ -352,6 +352,17 @@ target playback client.
   is `evidence/local/published-alpha9-restart-smoke.json`. This confirms
   recovery and correct error classification, while preserving the cold-restart
   latency limitation and leaving physical playback unverified.
+- The same published alpha.8-backend/alpha.9-wrapper pair was started in a
+  new isolated project with the saved synthetic profile volume from the prior
+  expressive run. Without re-uploading the reference, `GET /v1/voices`
+  returned `synthetic_alpha8`, Wyoming Describe listed it alongside
+  `breeze-design`, and a Cortex turn selecting that voice completed with
+  126,720 PCM bytes. Its first-use first PCM was 2.98 s and its generated
+  audio to total wall-time ratio was 0.63×; an exact repeat began at 0.456 s
+  and ran at 1.59×. Both containers had zero restarts and the dedicated stack
+  was removed. This verifies profile persistence and discovery across stack
+  lifetimes, while showing the first-use saved-clone latency/throughput cost.
+  Local evidence is `evidence/local/published-alpha9-persistent-clone.json`.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

@@ -177,3 +177,11 @@ correlated terminal backend error, zero late PCM, a fresh 111,360-byte turn
 and a subsequent Wyoming synthesis. Tag tests and image publication passed;
 see docs/ROLLBACK.md for the prior verified pair. Physical playback and
 owner listening remain pending.
+
+Published alpha.8/alpha.9 was started again with the prior synthetic saved
+voice volume. The profile survived the earlier stack removal, appeared in
+Cortex `/v1/voices` and Wyoming Describe, and produced 126,720 PCM bytes
+without re-upload. A first short cloned turn started PCM at 2.98 s and was
+0.63× generated audio / wall time; an exact repeat started at 0.456 s and was
+1.59×. This is a first-use latency caveat, not a persistence failure. The
+dedicated test stack was stopped; other Cortex resources remained untouched.

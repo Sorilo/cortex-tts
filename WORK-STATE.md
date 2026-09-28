@@ -312,3 +312,15 @@ judgment and physical Satellite playback remain open.
 The tracked helper was also exercised on one published Q4 prompt with active
 distil-small STT: it captured TTS, ten memory samples and 12/12 expected
 transcripts. Its isolated stack was stopped and temporary token removed.
+
+Read-only Satellite source audit at main
+`d332fb3da791c0c53106ef46a41715ba14079c33`: Satellite Python supervises
+pinned Linux Voice Assistant; LVA and the selected HA Assist pipeline own TTS
+interaction and speaker playback through `pipewire/<playback_sink>`. The first
+physical Breeze path is an isolated HA Wyoming TTS pipeline after speech
+authority gating. The standalone Core turn client's progressive PCM callback
+does not feed current Satellite playback; direct PCM requires a separate
+coordinated design. Updated `docs/CORTEX-INTEGRATION.md` and
+`docs/VALIDATION.md`. No Satellite, HA, Pi or other Cortex repository was
+changed. Owner listening, the isolated HA pipeline, physical playback and
+barge-in remain open.

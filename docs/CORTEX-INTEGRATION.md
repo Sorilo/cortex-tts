@@ -102,24 +102,31 @@ counts and timing without utterance text or audio.
 2. The dedicated voice Home Assistant adapter at
    `cortex-deploy/config/custom_components/cortex_assist/__init__.py` is a
    conversation agent: after Core reaches a terminal state, it returns speech
-   text to Assist. It is not the PCM playback layer. The current development
-   Assist pipeline has `tts_engine=None`. For Wyoming compatibility, register
-   this service as a Wyoming TTS provider in that isolated voice HA, select it
-   in a dedicated Assist pipeline only after gating which conversation-agent
-   speech may reach it, and verify which audio events actually reach the
-   Satellite. The adapter currently emits some fixed local failure phrases in
+   text to Assist. It is not the PCM playback layer. Current Satellite Python
+   supervises pinned Linux Voice Assistant (LVA); LVA and the selected HA Assist
+   pipeline own TTS interaction and speaker playback. LVA sends audio to its
+   configured `pipewire/<playback_sink>` output, and Wyoming TTS is a server-side
+   HA provider. The current development Assist pipeline has `tts_engine=None`.
+   For the first physical Breeze path, register this service as a Wyoming TTS
+   provider in the isolated voice HA and select it in a dedicated Assist
+   pipeline only after gating which conversation-agent speech may reach it.
+   Verify the selected pipeline, returned audio, and actual Satellite playback.
+   The adapter currently emits some fixed local failure phrases in
    addition to Core `speech_text`; a generic pipeline TTS selection would
    synthesize those too. Keep that existing fallback path separate unless its
    authority is explicitly reviewed. Preserve the voice HA's allowlisted
    integrations and device/room bridge checks. Do not assume HA's pipeline
    preserves first-PCM timing through to the physical speaker.
-3. For direct low-latency Cortex playback, adapt the authorized voice client
-   or Satellite transport in a coordinated task to consume Cortex binary PCM
-   frames into a measured queue. Correlate Core `audio_turn_id` and `action_id`
-   with the TTS `turn_id` at that caller; they are distinct IDs. Stop device
-   playback and send TTS `cancel`/disconnect on barge-in. Route any action
-   interruption through Core's existing `/interrupt` endpoint separately;
-   preserve completed effects and receipts.
+3. `scripts/core_turn_client.py` demonstrates an authorized client with a
+   progressive PCM callback, but it is not connected to current Satellite
+   playback. A direct PCM path would need a separately designed and authorized
+   LVA/HA integration or replacement playback transport with measured buffering,
+   audio focus, and barge-in. A callback in Satellite Python alone cannot feed
+   LVA's current playback path. If such a path is built, correlate Core
+   `audio_turn_id` and `action_id` with the TTS `turn_id` at that caller; they
+   are distinct IDs. Stop device playback and send TTS `cancel`/disconnect on
+   barge-in. Route any action interruption through Core's existing `/interrupt`
+   endpoint separately; preserve completed effects and receipts.
 4. Speak Core's nonempty authoritative `speech_text` for the appropriate
    succeeded, denied, failed, cancelled, uncertain and approval-pending
    outcomes. The current HA adapter waits only for terminal states and thus
@@ -141,5 +148,8 @@ Existing Cortex/Satellite repositories are intentionally untouched by this
 standalone implementation.
 This checklist was checked read-only against `cortex-core` commit
 `5ed4d07cec56fca89954ac377ef4b5162b4c0c61` and `cortex-deploy` commit
-`3cf01af1e7abd96e3f5b9798a50907cc05924a12` on 2026-09-28; recheck
-their contracts before a coordinated integration change.
+`3cf01af1e7abd96e3f5b9798a50907cc05924a12`, plus `cortex-satellite`
+commit `d332fb3da791c0c53106ef46a41715ba14079c33` (which pins LVA
+`2d460b672871547701c9a0389a7873a70153b014`), on 2026-09-28.
+Satellite's historical audible diagnostic replies do not validate this isolated
+Cortex/Breeze pipeline. Recheck these contracts before a coordinated change.

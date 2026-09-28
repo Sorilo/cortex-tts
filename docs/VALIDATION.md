@@ -44,6 +44,14 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- A read-only audit of `cortex-satellite` main at
+  `d332fb3da791c0c53106ef46a41715ba14079c33` confirms that its Python
+  runtime supervises pinned Linux Voice Assistant, which uses the selected HA
+  Assist pipeline for TTS and `pipewire/<playback_sink>` for audio output.
+  The first Breeze physical test therefore requires an isolated HA Wyoming
+  TTS pipeline and coordinated Satellite playback check. This source audit is
+  not a physical Cortex/Breeze playback or barge-in result; see
+  `docs/CORTEX-INTEGRATION.md`.
 - Python package compiles; 36 local tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,

@@ -1,10 +1,12 @@
 import hashlib
 import json
 from pathlib import Path
+from runpy import run_path
 
 import pytest
 
-from scripts.make_blind_listening_review import build_review
+build_review = run_path(str(Path(__file__).resolve().parents[1] /
+                            "scripts/make_blind_listening_review.py"))["build_review"]
 
 
 def test_blind_review_copies_verified_audio_and_hides_quant_labels(tmp_path: Path):

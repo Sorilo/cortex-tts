@@ -44,7 +44,7 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 21 local tests pass. They cover Cortex
+- Python package compiles; 22 local tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   Wyoming stream timeout,
@@ -324,6 +324,19 @@ target playback client.
   summary is `evidence/local/published-alpha8-expressive-summary.json`.
   Synthetic timing cannot establish clone similarity or direction fidelity;
   those still need listening.
+- A local wrapper build against the immutable alpha.8 backend was tested with
+  an immediate restart of only the isolated backend after first PCM. The
+  interrupted Cortex turn received one terminal `code:backend` event with its
+  original turn ID and no post-restart PCM; the slot released and a fresh turn
+  completed with 111,360 PCM bytes. A regression test now distinguishes
+  backend disconnects and backend-originated errors from malformed client
+  input, and a Wyoming regression confirms a backend drop produces an Error
+  event followed by a working new turn. The first fresh turn after restart
+  began PCM in 11.28 s despite `/readyz` returning 200; an immediate exact
+  repeat began in 0.424 s. Thus restart recovery works, but current readiness
+  does not guarantee shader/shape warmup after a backend-only restart. The
+  local run is `evidence/local/local-wrapper-restart-recovery.json`; a
+  published-image check is still required for this wrapper change.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

@@ -15,9 +15,9 @@ from wyoming.server import AsyncEventHandler, AsyncTcpServer
 from wyoming.tts import Synthesize, SynthesizeChunk, SynthesizeStart, SynthesizeStop, SynthesizeStopped
 
 from .config import Settings
-from .engine import Busy, Engine, ProtocolError
+from .engine import BackendError, Busy, Engine, ProtocolError
 
-VERSION = "0.1.0-alpha.6"
+VERSION = "0.1.0-alpha.9"
 
 
 def info_event(voice_ids: list[str]) -> Event:
@@ -140,7 +140,7 @@ class Handler(AsyncEventHandler):
                         await asyncio.gather(pump_task, return_exceptions=True)
         except asyncio.CancelledError:
             raise
-        except (Busy, OSError, RuntimeError, ValueError, ProtocolError,
+        except (BackendError, Busy, OSError, RuntimeError, ValueError, ProtocolError,
                 aiohttp.ClientError, TimeoutError) as exc:
             self.engine.metrics.failures += 1
             if not self.writer.is_closing():

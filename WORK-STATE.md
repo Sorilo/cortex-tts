@@ -159,3 +159,15 @@ zero-buffer underruns. First-PCM median/p95 was 124/373 ms, 152/2462 ms,
 and 151/166 ms respectively. The clone's first long-reply shape caused the
 2.462 s outlier; an exact repeat began at 0.328 s. No service restarted.
 Human judgment of similarity, pronunciation and direction remains pending.
+
+Backend disconnects were incorrectly labeled `code:protocol` by the Cortex
+wrapper; backend-originated errors lacked a consistent `code:backend`. A
+separate BackendError now distinguishes server failures from client protocol
+errors. The Wyoming path catches it and reports `breeze_error`. The full local
+suite passes 22 tests. A locally built wrapper plus published alpha.8 backend
+survived an immediate isolated backend restart: the interrupted turn got one
+terminal backend error, no stale PCM, and a fresh turn completed. The first
+post-restart turn took 11.28 s to first PCM despite `/readyz` returning 200;
+an exact warm repeat took 0.424 s. This cold-recovery limitation is documented
+in docs/VALIDATION.md. Publish and verify an immutable alpha.9 wrapper, then
+pin its digest in release Compose; physical playback remains pending.

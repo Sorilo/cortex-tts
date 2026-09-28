@@ -22,6 +22,10 @@ class ProtocolError(Exception):
     pass
 
 
+class BackendError(Exception):
+    pass
+
+
 class Admission:
     def __init__(self, limit: int, timeout: float) -> None:
         self.lock = asyncio.Lock()
@@ -84,7 +88,7 @@ class BackendSession:
         try:
             ready = await self.ws.receive(timeout=10)
             if ready.type != aiohttp.WSMsgType.TEXT or json.loads(ready.data).get("type") != "ready":
-                raise ProtocolError("backend did not announce ready")
+                raise BackendError("backend did not announce ready")
         except BaseException:
             await self.ws.close()
             raise
@@ -103,18 +107,18 @@ class BackendSession:
         async for event in self.ws:
             if event.type == aiohttp.WSMsgType.BINARY:
                 if len(event.data) % 2:
-                    raise ProtocolError("backend returned odd-length PCM")
+                    raise BackendError("backend returned odd-length PCM")
                 yield "audio", event.data
             elif event.type == aiohttp.WSMsgType.TEXT:
                 data = json.loads(event.data)
                 if not isinstance(data, dict) or "type" not in data:
-                    raise ProtocolError("invalid backend event")
+                    raise BackendError("invalid backend event")
                 yield "event", data
                 if data["type"] in {"done", "error"}:
                     return
             elif event.type in {aiohttp.WSMsgType.ERROR, aiohttp.WSMsgType.CLOSED}:
                 break
-        raise ProtocolError("backend closed before completion")
+        raise BackendError("backend closed before completion")
 
 
 class Metrics:

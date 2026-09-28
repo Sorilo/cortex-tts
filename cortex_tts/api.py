@@ -11,7 +11,7 @@ import uuid
 from aiohttp import WSMsgType, web
 
 from .config import Settings
-from .engine import Busy, Engine, ProtocolError, validate_client_message
+from .engine import BackendError, Busy, Engine, ProtocolError, validate_client_message
 
 
 def make_app(engine: Engine, settings: Settings) -> web.Application:
@@ -154,6 +154,8 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
                         else:
                             event = payload
                             assert isinstance(event, dict)
+                            if event.get("type") == "error":
+                                event = {**event, "code": "backend"}
                             await ws.send_json({**event, "turn_id": turn_id})
                             if event["type"] == "cancelled":
                                 engine.metrics.cancelled += 1
@@ -168,7 +170,7 @@ def make_app(engine: Engine, settings: Settings) -> web.Application:
             engine.metrics.failures += 1
             if not ws.closed:
                 await ws.send_json({"type": "error", "code": "protocol", "message": str(exc), "turn_id": turn_id})
-        except (OSError, TimeoutError, ConnectionError, ValueError,
+        except (BackendError, OSError, TimeoutError, ConnectionError, ValueError,
                 aiohttp.ClientError) as exc:
             engine.metrics.failures += 1
             if not ws.closed:

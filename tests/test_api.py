@@ -276,6 +276,29 @@ async def test_wyoming_disconnect_aborts_backend(services):
 
 
 @pytest.mark.asyncio
+async def test_wyoming_backend_drop_reports_error_and_recovers(services):
+    _, done_gate, disconnected, engine = services
+    wyoming = await start_wyoming(engine, Settings(**{**engine.settings.__dict__,
+                                                       "wyoming_host": "127.0.0.1", "wyoming_port": 0}))
+    try:
+        port = wyoming._server.sockets[0].getsockname()[1]
+        async with AsyncTcpClient("127.0.0.1", port) as client:
+            await client.write_event(Synthesize(text="backend-drop").event())
+            event = await asyncio.wait_for(client.read_event(), 1)
+            assert Error.is_type(event.type)
+            assert Error.from_event(event).code == "breeze_error"
+        await asyncio.wait_for(disconnected.wait(), 1)
+        async with AsyncTcpClient("127.0.0.1", port) as client:
+            await client.write_event(Synthesize(text="Recovered.").event())
+            assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert AudioChunk.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            done_gate.set()
+            assert AudioStop.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+    finally:
+        await wyoming.stop()
+
+
+@pytest.mark.asyncio
 async def test_disconnect_closes_backend_before_done(services):
     base, done_gate, disconnected, _ = services
     async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
@@ -332,12 +355,15 @@ async def test_backend_failure_is_terminal_and_releases_slot(services, text):
     base, done_gate, disconnected, engine = services
     async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:
         async with client.ws_connect(base + "/v1/speech/stream") as ws:
-            await ws.receive_json()
+            ready = await ws.receive_json()
             await ws.send_json({"type": "start"})
             await ws.send_json({"type": "text", "text": text})
             await ws.send_json({"type": "end"})
             assert (await ws.receive_json())["type"] == "started"
-            assert (await ws.receive_json())["type"] == "error"
+            error = await ws.receive_json()
+            assert error["type"] == "error"
+            assert error["code"] == "backend"
+            assert error["turn_id"] == ready["turn_id"]
         await asyncio.wait_for(disconnected.wait(), 1)
         for _ in range(20):
             if not engine.admission.lock.locked():

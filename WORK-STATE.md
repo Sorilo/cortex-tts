@@ -150,3 +150,12 @@ median/p95/max 130/155/163 ms, 20/20 fresh turns and 126/126 STT probes;
 peak was 3,697 MiB. All three containers had zero restarts and the isolated
 stack was stopped. These results do not erase the earlier 345 ms active-STT
 cancel outlier or prove physical playback and human-rated quality.
+
+The exact published pair passed isolated expressive-mode testing too: a
+service-generated 3.92 s exact-transcript WAV was saved and discovered as a
+synthetic clone. Eight combined-message turns each of voice design, saved
+clone and directed clone completed above 1.6× real time with no modeled
+zero-buffer underruns. First-PCM median/p95 was 124/373 ms, 152/2462 ms,
+and 151/166 ms respectively. The clone's first long-reply shape caused the
+2.462 s outlier; an exact repeat began at 0.328 s. No service restarted.
+Human judgment of similarity, pronunciation and direction remains pending.

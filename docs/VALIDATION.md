@@ -307,6 +307,23 @@ target playback client.
   `evidence/local/corpus-published-alpha8-q4-active-base/`,
   `evidence/local/published-alpha8-active-base-summary.json`, and
   `evidence/local/cancel-published-alpha8-q4-active-base-20.json`.
+- The published alpha.8-backend/alpha.7-wrapper pair also passed expressive
+  modes on the RTX 3080 without Whisper. A 3.92 s reference WAV was generated
+  by this service from its exact transcript, uploaded through authenticated
+  `POST /v1/voices`, and discovered through `GET /v1/voices` as
+  `synthetic_alpha8`; no person or household recording was used. Across eight
+  combined-message corpus turns per mode, design had first-PCM median/p95
+  124/373 ms and minimum generation speed 1.63×, saved clone 152/2462 ms
+  and 1.64×, and directed clone 151/166 ms and 1.99×. All 24 completed with
+  zero idealized zero-buffer underrun requests, zero wrapper failures and zero
+  container restarts. The clone p95 is the first 21.68 s long-reply shape:
+  first PCM took 2.462 s; an exact repeat began at 0.328 s and generated at
+  1.98× real time. This supports a first-shape cost, not a guaranteed warm
+  bound. Audio artifacts and per-turn timing remain ignored under
+  `evidence/local/published-alpha8-{design,clone,directed_clone}/`; the
+  summary is `evidence/local/published-alpha8-expressive-summary.json`.
+  Synthetic timing cannot establish clone similarity or direction fidelity;
+  those still need listening.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

@@ -26,3 +26,13 @@ jobs:
           BREEZE_GPU_DEVICE: '0'
           CORTEX_TTS_TOKEN: ci-placeholder
           STT_BENCH_MODEL_DIR: /tmp/cortex-tts-stt-model
+      - run: |
+          docker compose -f compose.release.yaml config --format json > /tmp/cortex-tts-compose.json
+          python -c 'import json; ports = {p["target"]: p["host_ip"] for p in json.load(open("/tmp/cortex-tts-compose.json"))["services"]["wrapper"]["ports"]}; assert ports == {18080: "127.0.0.1", 10200: "192.0.2.10"}, ports'
+        env:
+          BREEZE_MODEL_DIR: /tmp/cortex-tts-model
+          BREEZE_VOICES_DIR: /tmp/cortex-tts-voices
+          BREEZE_GPU_DEVICE: '0'
+          CORTEX_TTS_TOKEN: ci-placeholder
+          CORTEX_TTS_BIND: 127.0.0.1
+          CORTEX_TTS_WYOMING_BIND: 192.0.2.10

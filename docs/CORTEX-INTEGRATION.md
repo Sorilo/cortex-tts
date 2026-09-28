@@ -171,7 +171,8 @@ production HA, Pi, household devices outside the test, and every existing
 Cortex service running under its own owner. Use a separate digest-pinned TTS
 Compose project, dedicated ports/network/voice volume, and a verified GPU
 window. Wyoming TCP is not bearer-authenticated; expose it only to the trusted
-isolated voice HA path, while keeping the Cortex API token out of HA effects.
+isolated voice HA path with `CORTEX_TTS_WYOMING_BIND`, leaving the Cortex API
+on `CORTEX_TTS_BIND=127.0.0.1`. Keep the Cortex API token out of HA effects.
 
 The isolated voice HA currently has no TTS engine selected. Before selecting
 Breeze as its Wyoming provider, establish an authority gate for the adapter's

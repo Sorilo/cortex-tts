@@ -48,7 +48,7 @@ services:
       start_period: 5s
     ports:
       - "${CORTEX_TTS_BIND:-127.0.0.1}:${CORTEX_TTS_RELEASE_API_PORT:-18084}:18080"
-      - "${CORTEX_TTS_BIND:-127.0.0.1}:${CORTEX_TTS_RELEASE_WYOMING_PORT:-10224}:10200"
+      - "${CORTEX_TTS_WYOMING_BIND:-${CORTEX_TTS_BIND:-127.0.0.1}}:${CORTEX_TTS_RELEASE_WYOMING_PORT:-10224}:10200"
     networks: [tts-internal]
     restart: unless-stopped
 networks:

@@ -29,8 +29,12 @@ code licensing and adapted Fish attribution are described in [LICENSES.md](LICEN
 The wrapper exposes a Cortex WebSocket on loopback port 18080 and Wyoming TCP on
 loopback port 10220 by default. Change only this project's `.env` for deployment.
 The backend ports are private to the dedicated Docker network. For Home Assistant
-on another host, bind Wyoming to an appropriate trusted interface through this
-project's `CORTEX_TTS_BIND` setting and configure HA's Wyoming integration.
+on another host, set `CORTEX_TTS_WYOMING_BIND` to the trusted voice-HA-facing
+interface and configure HA's Wyoming integration. The Cortex API stays bound to
+`CORTEX_TTS_BIND` (loopback by default). Wyoming TCP has no bearer token, so
+only the trusted isolated voice HA should be able to reach that port. If the
+Wyoming-specific setting is unset, both ports retain the existing
+`CORTEX_TTS_BIND` behavior.
 
 The backend uses Vulkan with an NVIDIA headless EGL ICD. The NVIDIA container
 runtime must expose a Vulkan-capable driver and `graphics,display,compute,utility`

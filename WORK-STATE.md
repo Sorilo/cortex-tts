@@ -440,3 +440,11 @@ was good enough and it preserves VRAM headroom. The samples had different
 voices, so this does not establish a general quantization quality ranking.
 Other prompts, expressive fidelity and physical Satellite playback remain
 unverified. See `docs/LISTENING.md`.
+
+Pre-speaker handoff hardening: Compose now accepts
+`CORTEX_TTS_WYOMING_BIND` independently of the Cortex API's
+`CORTEX_TTS_BIND`. Setting the Wyoming interface for isolated voice HA leaves
+the token-authenticated API on loopback by default; existing shared-bind
+configurations retain their behavior when the new variable is unset. Local
+release and development Compose renders confirmed both binding cases, and CI
+now asserts the split release binding. No TTS or HA containers were started.

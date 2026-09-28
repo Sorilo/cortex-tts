@@ -22,9 +22,31 @@ TURN_ID = re.compile(r"^vt_[0-9a-f]{32}$")
 TERMINAL = {"succeeded", "denied", "failed", "cancelled", "uncertain"}
 
 
+class PlaybackCancelled(Exception):
+    """The local playback turn ended; the Core action was not interrupted."""
+
+
+async def _unless_cancelled(awaitable, cancel_event: asyncio.Event | None):
+    if cancel_event is None:
+        return await awaitable
+    work = asyncio.create_task(awaitable)
+    stopped = asyncio.create_task(cancel_event.wait())
+    try:
+        done, _ = await asyncio.wait((work, stopped), return_when=asyncio.FIRST_COMPLETED)
+        if stopped in done:
+            raise PlaybackCancelled("playback cancelled before TTS started")
+        return await work
+    finally:
+        if not work.done():
+            work.cancel()
+        stopped.cancel()
+        await asyncio.gather(work, stopped, return_exceptions=True)
+
+
 async def core_speech(core_url: str, turn_id: str, token: str, *, actor: str = "device",
                       timeout: float = 15.0, poll_interval: float = 0.2,
-                      allow_approval_pending: bool = False) -> dict:
+                      allow_approval_pending: bool = False,
+                      cancel_event: asyncio.Event | None = None) -> dict:
     """Return only a matching Core turn's speakable, nonempty speech_text."""
     if not TURN_ID.fullmatch(turn_id):
         raise ValueError("invalid Core audio_turn_id")
@@ -32,6 +54,8 @@ async def core_speech(core_url: str, turn_id: str, token: str, *, actor: str = "
         raise ValueError("actor must be device or software")
     if not token or timeout <= 0 or poll_interval <= 0:
         raise ValueError("Core token and positive timeout/poll interval required")
+    if cancel_event is not None and cancel_event.is_set():
+        raise PlaybackCancelled("playback cancelled before Core polling")
     route = "/v1/voice/device/turns/" if actor == "device" else "/v1/voice/turns/"
     url = core_url.rstrip("/") + route + turn_id
     deadline = time.monotonic() + timeout
@@ -41,9 +65,12 @@ async def core_speech(core_url: str, turn_id: str, token: str, *, actor: str = "
         timeout=aiohttp.ClientTimeout(total=min(timeout, 10.0)), trust_env=False,
     ) as client:
         while True:
-            async with client.get(url) as response:
-                response.raise_for_status()
-                result = await response.json()
+            async def get_result():
+                async with client.get(url) as response:
+                    response.raise_for_status()
+                    return await response.json()
+
+            result = await _unless_cancelled(get_result(), cancel_event)
             if (not isinstance(result, dict) or result.get("audio_turn_id") != turn_id
                     or not isinstance(result.get("action_id"), str)
                     or not result["action_id"]):
@@ -61,7 +88,10 @@ async def core_speech(core_url: str, turn_id: str, token: str, *, actor: str = "
                         "state": state, "speech_text": speech}
             if time.monotonic() >= deadline:
                 raise TimeoutError("Core turn has no selected speakable result")
-            await asyncio.sleep(min(poll_interval, max(0.0, deadline - time.monotonic())))
+            await _unless_cancelled(
+                asyncio.sleep(min(poll_interval, max(0.0, deadline - time.monotonic()))),
+                cancel_event,
+            )
 
 
 async def synthesize_core_turn(core_url: str, turn_id: str, core_token: str, *,
@@ -76,7 +106,10 @@ async def synthesize_core_turn(core_url: str, turn_id: str, core_token: str, *,
     authoritative = await core_speech(
         core_url, turn_id, core_token, actor=actor, timeout=core_timeout,
         poll_interval=poll_interval, allow_approval_pending=allow_approval_pending,
+        cancel_event=cancel_event,
     )
+    if cancel_event is not None and cancel_event.is_set():
+        raise PlaybackCancelled("playback cancelled before TTS started")
     tts = await run_stream_client(SimpleNamespace(
         url=tts_url, voice=voice, instruction=instruction,
         text=[authoritative["speech_text"]], output=output,

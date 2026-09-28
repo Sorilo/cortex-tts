@@ -1,6 +1,7 @@
 """Core-result authority gate for the opt-in streaming example client."""
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -141,3 +142,97 @@ async def test_core_turn_client_rejects_action_switch_while_polling(core_server,
             base, TURN_ID, "core-test-token", tts_url="ws://127.0.0.1:18084/v1/speech/stream",
             poll_interval=0.001,
         )
+
+
+@pytest.mark.asyncio
+async def test_playback_cancel_before_core_poll_makes_no_request(core_server, monkeypatch):
+    base, state = core_server
+    cancel_event = asyncio.Event()
+    cancel_event.set()
+
+    async def unexpected_tts(_, *, on_audio=None, cancel_event=None):
+        pytest.fail("TTS must not start for an abandoned playback turn")
+
+    monkeypatch.setattr(core_turn_client, "run_stream_client", unexpected_tts)
+    with pytest.raises(core_turn_client.PlaybackCancelled):
+        await core_turn_client.synthesize_core_turn(
+            base, TURN_ID, "core-test-token", tts_url="ws://127.0.0.1:18084/v1/speech/stream",
+            cancel_event=cancel_event,
+        )
+    assert state["requests"] == []
+
+
+@pytest.mark.asyncio
+async def test_playback_cancel_interrupts_core_poll_interval(core_server, monkeypatch):
+    base, state = core_server
+    state["responses"] = [{"audio_turn_id": TURN_ID, "action_id": "act_pending",
+                           "state": "admitted", "speech_text": None}]
+
+    async def unexpected_tts(_, *, on_audio=None, cancel_event=None):
+        pytest.fail("TTS must not start after playback was cancelled")
+
+    monkeypatch.setattr(core_turn_client, "run_stream_client", unexpected_tts)
+    cancel_event = asyncio.Event()
+    task = asyncio.create_task(core_turn_client.synthesize_core_turn(
+        base, TURN_ID, "core-test-token", tts_url="ws://127.0.0.1:18084/v1/speech/stream",
+        poll_interval=5, cancel_event=cancel_event,
+    ))
+    try:
+        async def first_get():
+            while not state["requests"]:
+                await asyncio.sleep(0.001)
+
+        await asyncio.wait_for(first_get(), 1)
+        cancel_event.set()
+        with pytest.raises(core_turn_client.PlaybackCancelled):
+            await asyncio.wait_for(task, 0.3)
+        assert len(state["requests"]) == 1
+    finally:
+        if not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+
+@pytest.mark.asyncio
+async def test_playback_cancel_interrupts_pending_core_get(monkeypatch):
+    started = asyncio.Event()
+    release = asyncio.Event()
+    requests = []
+
+    async def delayed_result(request):
+        requests.append((request.method, request.path))
+        started.set()
+        await release.wait()
+        return web.json_response({"audio_turn_id": TURN_ID, "action_id": "act_late",
+                                  "state": "succeeded", "speech_text": "Stale speech."})
+
+    app = web.Application()
+    app.router.add_get("/v1/voice/device/turns/{turn_id}", delayed_result)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "127.0.0.1", 0)
+    await site.start()
+
+    async def unexpected_tts(_, *, on_audio=None, cancel_event=None):
+        pytest.fail("TTS must not start after playback was cancelled")
+
+    monkeypatch.setattr(core_turn_client, "run_stream_client", unexpected_tts)
+    cancel_event = asyncio.Event()
+    task = None
+    try:
+        base = f"http://127.0.0.1:{site._server.sockets[0].getsockname()[1]}"
+        task = asyncio.create_task(core_turn_client.synthesize_core_turn(
+            base, TURN_ID, "core-test-token", tts_url="ws://127.0.0.1:18084/v1/speech/stream",
+            cancel_event=cancel_event,
+        ))
+        await asyncio.wait_for(started.wait(), 1)
+        cancel_event.set()
+        with pytest.raises(core_turn_client.PlaybackCancelled):
+            await asyncio.wait_for(task, 0.3)
+        assert requests == [("GET", f"/v1/voice/device/turns/{TURN_ID}")]
+    finally:
+        release.set()
+        if task is not None and not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+        await runner.cleanup()

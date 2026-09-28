@@ -113,7 +113,10 @@ measured playback buffer; this example does not choose a Satellite buffer policy
 Pass an `asyncio.Event` as `cancel_event` and set it on barge-in to send TTS
 `cancel` even while no new PCM arrives. The client then stops invoking the
 packet handler; the playback transport must clear its own queued audio. This
-does not call Core's action-interrupt endpoint.
+does not call Core's action-interrupt endpoint. If barge-in happens while Core
+is still being polled, the Python entry point raises `PlaybackCancelled`
+without starting TTS; the caller should treat it as a stopped local playback
+turn, not a cancelled Core action.
 See [docs/CORTEX-INTEGRATION.md](docs/CORTEX-INTEGRATION.md) before adapting it
 to a live voice path.
 

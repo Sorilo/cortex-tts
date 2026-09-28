@@ -276,3 +276,11 @@ action-interrupt POST. Recorded exact source/image pins and synthetic limits in
 `docs/VALIDATION.md`; ignored JSON is under `evidence/local/`. The isolated
 containers were stopped and temporary test tokens removed. Owner listening
 and physical Satellite barge-in remain unverified.
+
+Extended the trusted client's `cancel_event` over Core polling, so a barge-in
+before authorized speech promptly ends the local playback attempt rather than
+opening a stale TTS session later. It raises `PlaybackCancelled`, distinct from
+Core action cancellation; a pending GET and poll sleep are both interruptible.
+Three synthetic tests cover pre-GET, in-flight GET and between-GET cancellation,
+with no TTS request. The suite now has 36 passing tests; physical integration
+remains outside this standalone repo.

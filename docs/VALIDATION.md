@@ -44,7 +44,7 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 33 local tests pass. They cover Cortex
+- Python package compiles; 36 local tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   Wyoming stream timeout,
@@ -59,6 +59,8 @@ target playback client.
   a separate test checks the saved 24 kHz mono WAV bytes. External playback
   cancellation is tested before first PCM and after a callback, including TTS
   acknowledgement, suppressed further callbacks and no Core interrupt call.
+  Three Core-poll tests cover cancellation before the first GET, during a
+  pending GET, and during a long poll interval; none starts TTS.
 - The opt-in Core turn client was also exercised against the published
   alpha.8 backend/alpha.10 wrapper Q4 digest pair on the RTX 3080. An isolated
   authenticated fake Core returned an unspeakable `admitted` result followed

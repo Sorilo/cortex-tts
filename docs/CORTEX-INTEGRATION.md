@@ -34,6 +34,10 @@ timings and byte counts but not the complete waveform.
 The same Python entry point accepts `cancel_event=asyncio.Event()`; setting it
 while synthesis is active sends TTS `cancel` without waiting for another audio
 packet, stops further PCM callbacks, and waits for the TTS cancellation ack.
+If the event is set before Core has provided speakable text, it interrupts the
+pending GET or polling interval and raises `PlaybackCancelled` without opening
+a TTS stream. The caller can catch that exception to end the local playback
+turn; Core's action may still continue and its later receipt remains valid.
 The caller must immediately stop the speaker and discard its playback queue.
 This event never invokes Core's `/interrupt` route or reverses a completed
 action.

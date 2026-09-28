@@ -417,6 +417,37 @@ async def test_wyoming_session_text_budget_aborts_and_recovers(services):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("late_kind", ["chunk", "stop"])
+async def test_wyoming_rejects_input_after_stop_and_recovers(services, late_kind):
+    _, done_gate, disconnected, engine = services
+    wyoming = await start_wyoming(engine, Settings(**{**engine.settings.__dict__,
+                                                       "wyoming_host": "127.0.0.1", "wyoming_port": 0}))
+    try:
+        port = wyoming._server.sockets[0].getsockname()[1]
+        async with AsyncTcpClient("127.0.0.1", port) as client:
+            await client.write_event(SynthesizeStart().event())
+            await client.write_event(SynthesizeChunk(text="Hello.").event())
+            assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert AudioChunk.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            await client.write_event(SynthesizeStop().event())
+            late = SynthesizeChunk(text="Late.").event() if late_kind == "chunk" else SynthesizeStop().event()
+            await client.write_event(late)
+            error = await asyncio.wait_for(client.read_event(), 1)
+            assert Error.is_type(error.type)
+            assert Error.from_event(error).code == "protocol"
+            await asyncio.wait_for(disconnected.wait(), 1)
+            assert not engine.admission.lock.locked()
+            await client.write_event(Synthesize(text="Fresh.").event())
+            assert AudioStart.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert AudioChunk.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            done_gate.set()
+            assert AudioStop.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+            assert SynthesizeStopped.is_type((await asyncio.wait_for(client.read_event(), 1)).type)
+    finally:
+        await wyoming.stop()
+
+
+@pytest.mark.asyncio
 async def test_wyoming_stream_without_stop_times_out_and_releases_backend(services):
     _, _, disconnected, engine = services
     wyoming = await start_wyoming(engine, Settings(**{**engine.settings.__dict__,

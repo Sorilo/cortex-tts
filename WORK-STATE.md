@@ -367,3 +367,10 @@ restarts. Updated release pin, rollback and validation records. The temporary
 project and token were removed. Alpha.12 image publication succeeded, and
 release-pin CI passed for `9d8a3c077e070b51865bc82b778b1e6fc4e453d5`
 (GitHub Actions run `36406916923`).
+
+Closed a Wyoming streaming lifecycle gap: after `synthesize-stop`, later chunks
+or duplicate stops previously entered an unconsumed command queue while the
+backend finished. They now produce a terminal protocol error, cancel and close
+the backend, and permit a fresh request on the same connection. The full local
+suite passes 42 tests. Version advanced to alpha.13; the alpha.12 release pin
+remains until publication and isolated published-image validation.

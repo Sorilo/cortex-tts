@@ -17,7 +17,7 @@ from wyoming.tts import Synthesize, SynthesizeChunk, SynthesizeStart, Synthesize
 from .config import Settings
 from .engine import BackendError, Busy, Engine, ProtocolError
 
-VERSION = "0.1.0-alpha.12"
+VERSION = "0.1.0-alpha.13"
 
 
 def info_event(voice_ids: list[str]) -> Event:
@@ -42,6 +42,7 @@ class Handler(AsyncEventHandler):
         self.commands: asyncio.Queue[dict] | None = None
         self.worker: asyncio.Task | None = None
         self.total_text_chars = 0
+        self.input_ended = False
 
     async def run(self) -> None:
         try:
@@ -69,6 +70,7 @@ class Handler(AsyncEventHandler):
             self.total_text_chars = len(request.text)
             await self.commands.put({"type": "text", "text": request.text})
             await self.commands.put({"type": "end"})
+            self.input_ended = True
             return True
         if SynthesizeStart.is_type(event.type):
             if self.worker and not self.worker.done():
@@ -82,27 +84,39 @@ class Handler(AsyncEventHandler):
             if self.commands is None:
                 await self.write_event(Error(text="synthesize-start required", code="protocol").event())
                 return True
+            if self.input_ended:
+                await self._reject_active("chunk after synthesize-stop")
+                return True
             chunk = SynthesizeChunk.from_event(event)
             if (len(chunk.text) > self.settings.max_text_chars or
                     self.total_text_chars + len(chunk.text) > self.settings.max_total_text_chars):
-                if self.worker:
-                    self.worker.cancel()
-                    await asyncio.gather(self.worker, return_exceptions=True)
-                self.commands = None
-                await self.write_event(Error(text="text exceeds limit", code="protocol").event())
+                await self._reject_active("text exceeds limit")
                 return True
             self.total_text_chars += len(chunk.text)
             await self.commands.put({"type": "text", "text": chunk.text})
             return True
         if SynthesizeStop.is_type(event.type):
             if self.commands is not None:
+                if self.input_ended:
+                    await self._reject_active("duplicate synthesize-stop")
+                    return True
+                self.input_ended = True
                 await self.commands.put({"type": "end"})
             return True
         return True
 
+    async def _reject_active(self, message: str) -> None:
+        if self.worker:
+            self.worker.cancel()
+            await asyncio.gather(self.worker, return_exceptions=True)
+        self.commands = None
+        self.input_ended = True
+        await self.write_event(Error(text=message, code="protocol").event())
+
     def _begin(self, voice: str) -> None:
         self.commands = asyncio.Queue(maxsize=32)
         self.total_text_chars = 0
+        self.input_ended = False
         self.worker = asyncio.create_task(self._speak(voice))
 
     async def _speak(self, voice: str) -> None:

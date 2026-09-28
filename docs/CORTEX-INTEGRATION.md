@@ -60,6 +60,10 @@ the whole session may add at most 12,000 characters across those messages.
 Wyoming legacy synthesis and streaming chunks follow the same limits.
 Exceeding either limit ends the current request with a protocol error and
 releases its backend session; start a new request for a separate reply.
+For Wyoming streaming, `synthesize-stop` ends input to that request. A later
+chunk or duplicate stop is a terminal protocol error; the wrapper closes its
+backend session rather than leaving text in an unconsumed queue. A new
+`synthesize-start` or legacy `synthesize` may then begin on the same connection.
 `voice_id`, `seed`, and `cfg_scale` are chosen at `start` and cannot be updated
 within that session. Only `instruction` changes delivery mid-session, from the
 next piece rather than retroactively changing audio already being spoken.

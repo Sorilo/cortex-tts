@@ -44,6 +44,12 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- Wyoming streaming rejects a chunk or second `synthesize-stop` after input
+  ended for an active request. Both cases send a terminal protocol error,
+  close the backend session, and recover with a fresh request on the same TCP
+  connection in fake-backend tests. The local suite has 42 passing tests.
+  Published alpha.13 image behavior still needs an isolated smoke before its
+  digest replaces alpha.12.
 - Cortex and Wyoming now cap cumulative per-session text at 12,000 characters
   in addition to the 2,000-character per-message limit. Tests verify that a
   multi-frame Cortex overflow yields one terminal protocol error, Wyoming

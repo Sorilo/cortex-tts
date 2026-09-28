@@ -24,4 +24,6 @@ updating or running on GPU.
 
 GitHub repository: https://github.com/Sorilo/cortex-tts. First pushed commit
 `8f4291087b082a218452b7f743354d0dab17717d`; initial remote CI passed.
-An alpha image tag is planned after the next commit passes CI.
+The first alpha image workflow failed before build because GHCR paths had a
+mixed-case owner; the path is corrected for alpha.2. GPU validation is still
+pending.

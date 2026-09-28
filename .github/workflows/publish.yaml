@@ -29,5 +29,5 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}-${{ matrix.component }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}-${{ matrix.component }}:sha-${{ github.sha }}
+            ghcr.io/sorilo/cortex-tts-${{ matrix.component }}:${{ github.ref_name }}
+            ghcr.io/sorilo/cortex-tts-${{ matrix.component }}:sha-${{ github.sha }}

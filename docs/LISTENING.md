@@ -1,9 +1,14 @@
 # Quantization listening review
 
-Q4_K is the release default because it leaves the most RTX 3080 memory for
-Whisper and later models. Automated transcription and timing cannot establish
-whether its speech quality is close enough to Q6_K or Q8_0. The owner needs to
-listen before treating that choice as final.
+Q4_K is the owner-approved release default because it leaves the most RTX 3080
+memory for Whisper and later models. On 2026-09-28, the owner compared the
+three blind, level-matched long-reply clips and found all acceptable: C sounded
+slightly worse, with a possible slight advantage for A over B. The answer key
+maps long-reply A/B/C to Q6_K/Q4_K/Q8_0. The owner chose Q4_K because its
+quality was good enough for this use. The clips had different-sounding voices,
+so this is a practical acceptance decision, not a controlled quality ranking.
+Names, numbers, punctuation, clone similarity, direction fidelity, and real
+speaker playback have not received the same owner listening verdict.
 
 The local review set uses the four prompts in
 `benchmarks/listening_corpus.json`: a timer with numbers, three names, a
@@ -30,8 +35,8 @@ matched copies use one constant linear attenuation per WAV to reach the
 quietest source RMS for that prompt; they preserve duration and dynamics. RMS
 matching is only a rough loudness control. This is one stochastic generation
 per prompt/model, not a repeated perceptual study. The local page hides labels
-for casual review but is not a controlled listening study. Owner listening and
-real speaker playback remain unverified.
+for casual review but is not a controlled listening study. Real speaker
+playback remains unverified.
 
 To reproduce, use the verified model files and a dedicated local env file with
 `BREEZE_MODEL_DIR`, `BREEZE_VOICES_DIR`, `BREEZE_GPU_DEVICE` and a fresh

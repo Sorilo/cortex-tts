@@ -26,8 +26,8 @@ Short+long startup warmup hides common first-request shader compilation behind
 readiness (20.0 s on this RTX 3080). New text shapes can still cause a slower
 first response. See docs/VALIDATION.md for sample sizes and caveats.
 
-Remaining: human listening/quantization quality judgment, real playback
-underrun measurement and physical integration.
+Remaining: owner listening for prompts beyond the accepted blind long-reply
+Q4 comparison, real playback underrun measurement and physical integration.
 Existing `cortex-dev`
 containers must remain untouched. Stop only our isolated GPU test resources.
 
@@ -431,3 +431,12 @@ phrase boundary, while the shape-warm repeat had none. The output WAV/JSON is
 ignored under `evidence/local/`. The 44-test local suite passes. This is a
 diagnostic control example, not authorization to stream partial Core text or
 proof of audible direction fidelity. The isolated stack and token were removed.
+
+On 2026-09-28, the owner listened to the blind, level-matched long-reply
+Q4/Q6/Q8 samples. All sounded acceptable; the owner heard C as slightly worse
+and possibly preferred A over B. The key identifies A=Q6, B=Q4, C=Q8 for
+that prompt. The owner selected Q4 as the release default because its quality
+was good enough and it preserves VRAM headroom. The samples had different
+voices, so this does not establish a general quantization quality ranking.
+Other prompts, expressive fidelity and physical Satellite playback remain
+unverified. See `docs/LISTENING.md`.

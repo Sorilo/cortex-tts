@@ -319,6 +319,13 @@ target playback client.
   model sampling was not seed-controlled and physical speaker behavior is
   still unmeasured. The isolated stack was stopped between models and after
   Q8, and its temporary token was removed.
+- On 2026-09-28, the owner listened to the three blind long-reply clips and
+  accepted Q4_K as the release default. All three sounded acceptable; the
+  owner heard C (Q8_0) as slightly worse and possibly preferred A (Q6_K) over
+  B (Q4_K). Different-sounding voices limit comparison. This is one owner's
+  practical verdict for one prompt, not a controlled quality ranking or a
+  verdict on names, numbers, punctuation, clone/direction fidelity, or speaker
+  playback. See `docs/LISTENING.md`.
 - A matched active-STT comparison used the same four complete-message prompts
   on each published Q4/Q6/Q8 backend variant while a separate pinned
   LinuxServer Wyoming `distil-small.en` container repeatedly transcribed the

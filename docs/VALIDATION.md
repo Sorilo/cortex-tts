@@ -210,6 +210,18 @@ target playback client.
   passes its warm target in these runs, but low-latency *audible* playback with
   no underruns remains unproven and may require a larger buffer or backend
   first-shape optimization.
+- A generic prewarm experiment on a fresh alpha.7/Q4 stack ran the three
+  synthetic prompts in `benchmarks/generic_prewarm_experiment.json` after the
+  built-in startup warmup and before the eight-case corpus. It did not remove
+  first-user gaps: weather still had a 2.742 s largest packet gap and 0.768 s
+  modeled zero-buffer underrun; multi-sentence still had a 1.198 s largest gap
+  and 0.345 s modeled underrun. The corpus had two underrun requests and a
+  1.128× slowest request. These different but similar-length warmups did not
+  generalize across the tested text; they are not added to startup. Reproduce
+  by running `scripts/benchmark_corpus.py --corpus
+  benchmarks/generic_prewarm_experiment.json` once, followed by the default
+  corpus once, against a newly started isolated release stack. Results remain
+  under ignored `evidence/local/`.
 - Initial GitHub Actions wrapper test/Compose workflow passed at
   `8f4291087b082a218452b7f743354d0dab17717d`.
 - Alpha.2 image workflow passed at `d0e7ffce53cce16ecf0bb2c99f3af347a08cc061`:

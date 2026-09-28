@@ -94,3 +94,11 @@ in one run but modeled median/p95 audible start at 1.20/2.42 s. A later
 playback and low-latency audible starts remain unresolved. Use a measured
 fill-level queue in the future Cortex playback client; do not claim first PCM
 arrival is equivalent to sound from the device.
+
+Generic prewarm experiment: three different short/multi-sentence phrases on a
+fresh published alpha.7/Q4 stack did not remove weather or multi-sentence
+first-user gaps (2.742 s and 1.198 s largest packet gaps; two modeled
+zero-buffer underrun requests). The exact synthetic prewarm corpus is tracked
+under `benchmarks/`; local measurements stay ignored. Do not add more generic
+startup phrases without evidence of generalization; current service-side
+first-shape continuity remains unresolved.

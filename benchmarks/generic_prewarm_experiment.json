@@ -1,0 +1,5 @@
+[
+  {"id": "timer", "pieces": ["Please check the kitchen timer."]},
+  {"id": "forecast", "pieces": ["The morning forecast looks comfortable.", "A short shower is possible later today."]},
+  {"id": "choices", "pieces": ["There are several items to consider.", "We can review each option together and choose the next step."]}
+]

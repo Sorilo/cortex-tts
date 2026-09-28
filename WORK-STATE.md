@@ -385,3 +385,15 @@ metrics increased only for the two fresh turns. Both containers had zero
 restarts. Release Compose and rollback records now pin the tested pair. The
 isolated project, token, and temporary voices were removed. Human listening
 and physical Satellite integration remain open.
+
+Measured current published alpha.8-backend/alpha.13-wrapper paired overhead on
+the authorized dev RTX 3080. With Q4 and the benchmark's fixed two-sentence
+prompt, two shape-warm pairs were discarded, then 20 direct/wrapper pairs
+alternated order. Client first-PCM direct median/p95 116/120 ms, wrapper
+117/122 ms; paired wrapper overhead median/p95 1.3/5.0 ms. All 40 measured
+turns returned identical 165,120-byte PCM lengths, exceeded 1.93× real time,
+and had zero idealized zero-buffer underrun requests. Both containers had zero
+restarts. This meets the 25 ms p95 target for this workload only; active-STT,
+diverse-text, and physical playback overhead remain unmeasured. Detailed
+ignored JSON and limitations are in `docs/VALIDATION.md`. The isolated stack,
+loopback port, token and voice directory were removed.

@@ -44,6 +44,25 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
+- The current digest-pinned alpha.8-backend/alpha.13-wrapper pair was compared
+  on the dev RTX 3080 (driver 595.91.07) using the Q4 default voice and the
+  fixed two-sentence `scripts/benchmark_stream.py` prompt. The isolated
+  backend WebSocket was exposed on a temporary loopback-only port; both
+  clients ran from this host. After two discarded alternating shape-warm pairs,
+  20 measured direct/wrapper pairs alternated request order. Direct first-PCM
+  median/p95 was 116/120 ms, wrapper 117/122 ms; the paired wrapper-minus-direct
+  median/p95 was 1.3/5.0 ms (range -3.5 to 6.1 ms). Every path returned
+  165,120 PCM bytes per turn, completed above 1.93× real time, and had zero
+  idealized zero-buffer underrun requests. Both containers had zero restarts.
+  The [paired benchmark script](../scripts/benchmark_stream.py) produced
+  ignored `evidence/local/alpha13-overhead-shape-warmup.json` and
+  `evidence/local/alpha13-overhead-paired20.json`; its `--paired --requests 20`
+  mode compares client-observed first PCM after `start` on each path. The
+  measured p95 is below the 25 ms wrapper-overhead target for this warm,
+  fixed-prompt loopback workload only. It does not establish overhead under
+  active STT, other text shapes, physical playback, or mixed concurrent load.
+  The isolated project, temporary loopback port, token, and voice directory
+  were removed.
 - Wyoming streaming rejects a chunk or second `synthesize-stop` after input
   ended for an active request. Both cases send a terminal protocol error,
   close the backend session, and recover with a fresh request on the same TCP

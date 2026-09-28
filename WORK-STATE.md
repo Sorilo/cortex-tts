@@ -39,5 +39,9 @@ Alpha.2 was published successfully from `d0e7ffce53cce16ecf0bb2c99f3af347a08cc06
 Backend digest: `sha256:953f6229d3cbb94fb5d2bb69a672a8e7baa64b8f191ec03b5fccdc43ba768896`.
 Wrapper digest: `sha256:908eea62ba2a0a33fde1e1eaf8be695707072923119c34d3bb38922fd43ab47d`.
 The digest-pinned release Compose file is separate from the local-build stack.
-Alpha.2's backend image predates the headless EGL fix and must be replaced by a
-new tagged build before the release Compose file is GPU ready.
+Alpha.2's backend image predates the headless EGL fix.
+Alpha.4's GitHub-built backend exited SIGILL on this host (native CPU tuning
+from the CI runner). The backend Dockerfile now sets `GGML_NATIVE=OFF` and
+`GGML_AVX512=OFF`; a local portable rebuild ran Q4 on Vulkan0 and streamed
+audio, with warm TTFA 185 ms. Publish and test the portable image before
+finalizing the release Compose digest.

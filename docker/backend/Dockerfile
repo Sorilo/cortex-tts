@@ -8,6 +8,7 @@ RUN git clone https://github.com/HoppouAI/Breeze-TTS-2.cpp.git /src \
     && cd /src && git checkout "$BREEZE_REF" && git submodule update --init --recursive
 RUN cmake -S /src -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DBREEZE_VULKAN=ON -DBREEZE_BUILD_CLI=OFF -DBREEZE_BUILD_SHARED=OFF \
+    -DGGML_NATIVE=OFF -DGGML_AVX512=OFF \
     && cmake --build /build --target breeze-server -j 4
 
 FROM ubuntu:24.04

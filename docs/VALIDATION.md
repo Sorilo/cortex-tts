@@ -59,8 +59,14 @@ target playback client.
 - On a 10 GiB RTX 3080 (NVIDIA driver 595.91.07), the original runtime image
   silently selected CPU because the NVIDIA GLX Vulkan ICD lacked dependencies.
   The corrected image uses the headless EGL ICD; backend logs identify `Vulkan0`
-  and `nvidia-smi` identifies the Breeze process. The original alpha.2 backend
-  image is **not GPU validated**; the corrected image requires a later tag.
+  and `nvidia-smi` identifies the Breeze process. The alpha.2 backend image
+  predates this headless ICD fix.
+- The alpha.4 image built on GitHub detected Vulkan but exited with SIGILL
+  (code 132) on the dev host before loading Q4, while the dev-host build ran.
+  The backend build now disables ggml native CPU tuning and AVX-512. A local
+  rebuild loaded Q4 on Vulkan0 and streamed 176,640 PCM bytes per request;
+  its first cold TTFA was 12.635 s, then 185 ms and 2.19× real time. The
+  published portable image still needs its own smoke test before release pinning.
 - Q4, 20 sequential warm short requests per path with the same saved synthetic
   voice: direct TTFA median/p95 186/189 ms, wrapper 187/193 ms. Wrapper's median
   TTFA exceeded direct by about 1 ms; this sequential experiment does not

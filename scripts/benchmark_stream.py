@@ -97,6 +97,28 @@ def summary(rows: list[dict]) -> dict:
 
 async def run(args: argparse.Namespace) -> dict:
     results = {}
+    if args.paired:
+        if not args.direct_ws or not args.wrapper_ws:
+            raise ValueError("paired benchmark needs both WebSocket URLs")
+        token = os.getenv("CORTEX_TTS_TOKEN")
+        if not token:
+            raise ValueError("CORTEX_TTS_TOKEN required for paired benchmark")
+        rows = {"direct": [], "wrapper": []}
+        differences = []
+        for index in range(args.requests):
+            order = ("direct", "wrapper") if index % 2 == 0 else ("wrapper", "direct")
+            pair = {}
+            for label in order:
+                url = args.direct_ws if label == "direct" else args.wrapper_ws
+                pair[label] = await asyncio.wait_for(
+                    measure(url, args.text, args.voice, args.instruction,
+                            None if label == "direct" else token, args.timeout), args.timeout)
+                rows[label].append(pair[label])
+            differences.append(pair["wrapper"]["ttfa_s"] - pair["direct"]["ttfa_s"])
+        results = {label: summary(values) for label, values in rows.items()}
+        results["paired_wrapper_overhead_p95_s"] = percentile(differences, 0.95)
+        results["paired_wrapper_overhead_s"] = differences
+        return results
     for label, url, token in [
         ("direct", args.direct_ws, None),
         ("wrapper", args.wrapper_ws, os.getenv("CORTEX_TTS_TOKEN")),
@@ -126,6 +148,8 @@ def main() -> None:
     parser.add_argument("--voice", default="")
     parser.add_argument("--instruction", default="Speak clearly and naturally.")
     parser.add_argument("--requests", type=int, default=10)
+    parser.add_argument("--paired", action="store_true",
+                        help="alternate direct/wrapper order and report paired TTFA overhead")
     parser.add_argument("--timeout", type=float, default=120)
     parser.add_argument("--output", default="evidence/local/stream-benchmark.json")
     args = parser.parse_args()

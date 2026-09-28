@@ -17,7 +17,7 @@ from wyoming.tts import Synthesize, SynthesizeChunk, SynthesizeStart, Synthesize
 from .config import Settings
 from .engine import Busy, Engine, ProtocolError
 
-VERSION = "0.1.0-alpha.4"
+VERSION = "0.1.0-alpha.5"
 
 
 def info_event(voice_ids: list[str]) -> Event:

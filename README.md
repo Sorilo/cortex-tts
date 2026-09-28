@@ -36,7 +36,8 @@ The backend uses Vulkan with an NVIDIA headless EGL ICD. The NVIDIA container
 runtime must expose a Vulkan-capable driver and `graphics,display,compute,utility`
 driver capabilities. Check the backend log for `backend: Vulkan0` and confirm
 its process owns GPU memory with `nvidia-smi`; `/readyz` alone cannot detect a
-CPU fallback. The wrapper warms short and long synthesis before opening its
+CPU fallback. The image builds ggml with native CPU tuning disabled so CI
+runner instructions do not leak into the deployed binary. The wrapper warms short and long synthesis before opening its
 ports (set `CORTEX_TTS_WARMUP=false` only for diagnostics). A cold restart took
 about 20 seconds to become ready in the local RTX 3080 test. Ordinary Python tests
 do not allocate a GPU.

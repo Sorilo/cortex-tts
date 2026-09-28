@@ -32,6 +32,12 @@ services:
       BREEZE_VOICE: ${BREEZE_VOICE:-}
       BREEZE_INSTRUCTION: ${BREEZE_INSTRUCTION:-Speak clearly and naturally.}
     depends_on: [breeze-backend]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18080/readyz', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+      start_period: 5s
     ports:
       - "${CORTEX_TTS_BIND:-127.0.0.1}:${CORTEX_TTS_API_PORT:-18080}:18080"
       - "${CORTEX_TTS_BIND:-127.0.0.1}:${CORTEX_TTS_WYOMING_PORT:-10220}:10200"

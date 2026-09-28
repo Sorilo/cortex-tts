@@ -1,7 +1,7 @@
 name: cortex-tts-release
 services:
   breeze-backend:
-    image: ghcr.io/sorilo/cortex-tts-backend@sha256:953f6229d3cbb94fb5d2bb69a672a8e7baa64b8f191ec03b5fccdc43ba768896
+    image: ghcr.io/sorilo/cortex-tts-backend@sha256:88a85908cc26e169d937b117f8dd11c63e8e942fe12318da3a065c389f129ab0
     deploy:
       resources:
         reservations:
@@ -18,7 +18,7 @@ services:
     networks: [tts-internal]
     restart: unless-stopped
   wrapper:
-    image: ghcr.io/sorilo/cortex-tts-wrapper@sha256:908eea62ba2a0a33fde1e1eaf8be695707072923119c34d3bb38922fd43ab47d
+    image: ghcr.io/sorilo/cortex-tts-wrapper@sha256:cc3846ea827d2b1d272d24475da598b916d99a3f700e61875717e6668d6f498b
     environment:
       BREEZE_HTTP: http://breeze-backend:8080
       BREEZE_WS: ws://breeze-backend:8081
@@ -26,6 +26,12 @@ services:
       BREEZE_VOICE: ${BREEZE_VOICE:-}
       BREEZE_INSTRUCTION: ${BREEZE_INSTRUCTION:-Speak clearly and naturally.}
     depends_on: [breeze-backend]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18080/readyz', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+      start_period: 5s
     ports:
       - "${CORTEX_TTS_BIND:-127.0.0.1}:${CORTEX_TTS_RELEASE_API_PORT:-18084}:18080"
       - "${CORTEX_TTS_BIND:-127.0.0.1}:${CORTEX_TTS_RELEASE_WYOMING_PORT:-10224}:10200"

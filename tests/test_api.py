@@ -148,6 +148,43 @@ async def test_stream_client_receives_audio_before_later_text(services, monkeypa
 
 
 @pytest.mark.asyncio
+async def test_core_authorized_turn_streams_through_wrapper(services, monkeypatch):
+    base, done_gate, _, engine = services
+    done_gate.set()
+    monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    with monkeypatch.context() as path_context:
+        path_context.syspath_prepend(str(scripts))
+        from core_turn_client import synthesize_core_turn
+
+    turn_id = "vt_" + "a" * 32
+
+    async def core_result(request):
+        assert request.headers["Authorization"] == "Bearer core-test-token"
+        return web.json_response({"audio_turn_id": turn_id, "action_id": "act_test",
+                                  "state": "succeeded", "speech_text": "Authorized speech."})
+
+    app = web.Application()
+    app.add_routes([web.get("/v1/voice/device/turns/{turn_id}", core_result)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "127.0.0.1", 0)
+    await site.start()
+    try:
+        core_url = f"http://127.0.0.1:{site._server.sockets[0].getsockname()[1]}"
+        result = await asyncio.wait_for(synthesize_core_turn(
+            core_url, turn_id, "core-test-token",
+            tts_url=base.replace("http://", "ws://") + "/v1/speech/stream",
+        ), 2)
+        assert result["core_audio_turn_id"] == turn_id
+        assert result["core_action_id"] == "act_test"
+        assert result["tts"]["complete"] and result["tts"]["bytes"] == 200
+        assert engine.metrics.requests == 1
+    finally:
+        await runner.cleanup()
+
+
+@pytest.mark.asyncio
 async def test_stream_yields_audio_before_completion(services):
     base, done_gate, _, engine = services
     async with aiohttp.ClientSession(headers={"Authorization": "Bearer secret"}) as client:

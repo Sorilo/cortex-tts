@@ -228,3 +228,12 @@ has no TTS engine selected and the conversation agent itself is not the PCM
 playback transport. Updated docs/CORTEX-INTEGRATION.md to name the real
 handoff paths and keep adapter-authored failure phrases out of Breeze until
 their authority is explicitly reviewed. No Core/Deploy files were edited.
+
+Added an opt-in trusted-client Core-to-TTS example in
+`scripts/core_turn_client.py`. It polls authenticated Core turn GETs, validates
+`audio_turn_id` and stable `action_id`, ignores partial/model text, and sends
+one nonempty Core `speech_text` message to the existing streaming client.
+Approval-pending speech is opt-in; playback cancellation never calls Core's
+action interrupt. Six new synthetic Core-result gate cases plus one end-to-end
+fake-Core/fake-backend wrapper path bring the local suite to 30 passing tests.
+No Core, HA, Satellite, or other repo was modified.

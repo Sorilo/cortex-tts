@@ -16,6 +16,15 @@ no current Core stream of authorized speech fragments, so the initial Cortex
 integration should send the complete nonempty `speech_text` in one TTS `text`
 message followed by `end`. The incremental TTS API is reserved for a future
 Core contract that authorizes each fragment before it is sent.
+The runnable `scripts/core_turn_client.py` demonstrates this handoff from a
+trusted voice client: it polls authenticated Core GET results, checks the
+requested `audio_turn_id` and stable `action_id`, ignores partial/model fields,
+and speaks only nonempty Core `speech_text` in selected speakable states. It
+waits for a terminal state by default; `--allow-approval-pending` opts into
+Core's approval-pending phrase. It can cancel its own TTS stream for a test,
+but never calls Core's action-interrupt endpoint. Tokens remain in the client
+environment, not in the TTS containers or JSON output. The example saves
+received PCM as a WAV after the stream; it is not a physical playback client.
 
 Open `GET /v1/speech/stream` as WebSocket with `Authorization: Bearer <token>`.
 The server returns `ready` with `version:1`, `turn_id`, `sample_rate:24000`,

@@ -91,6 +91,23 @@ reference recordings need not be retained by this service.
 Run local tests with `pytest -q`. Current benchmark status and remaining gates
 are in [docs/VALIDATION.md](docs/VALIDATION.md).
 
+`scripts/core_turn_client.py` is an opt-in trusted-client example for the
+current Core handoff. Given a Core `audio_turn_id`, it polls Core's authenticated
+turn result, verifies the turn/action correlation, and sends only a nonempty
+Core `speech_text` to this service in one streaming `text` message. Set
+`CORTEX_CORE_TOKEN`, `CORTEX_TTS_TOKEN`, `CORTEX_CORE_URL` and
+`CORTEX_AUDIO_TURN_ID` in the trusted client environment, then run:
+
+```sh
+python scripts/core_turn_client.py --core-url "$CORTEX_CORE_URL" \
+  --turn-id "$CORTEX_AUDIO_TURN_ID" --output /tmp/core-tts-turn.wav
+```
+
+The script saves a WAV after receiving
+progressive PCM; it does not implement device playback or change Core actions.
+See [docs/CORTEX-INTEGRATION.md](docs/CORTEX-INTEGRATION.md) before adapting it
+to a live voice path.
+
 For an isolated synthetic corpus run against an already-started service, set
 `CORTEX_TTS_TOKEN` and run `python scripts/benchmark_corpus.py --url
 ws://127.0.0.1:18080/v1/speech/stream`. WAVs and JSON stay in ignored

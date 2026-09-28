@@ -44,7 +44,7 @@ target playback client.
 
 ## Current independent checks (2026-09-28)
 
-- Python package compiles; 23 local tests pass. They cover Cortex
+- Python package compiles; 30 local tests pass. They cover Cortex
   early audio, auth, voice upload/discovery, disconnect/cancel, Wyoming discovery,
   Wyoming legacy and incremental early audio, bounded admission, input limits,
   Wyoming stream timeout,
@@ -52,7 +52,9 @@ target playback client.
   failures, busy-slot isolation, queued admission order, a concurrently
   sending streaming client, and single terminal protocol errors for malformed
   JSON, out-of-order text and unknown message types, plus the playback
-  fill-level simulation used by the corpus benchmark.
+  fill-level simulation used by the corpus benchmark. Six Core-result gate
+  cases and one synthetic Core-to-wrapper path verify that only correlated,
+  authorized `speech_text` reaches TTS.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.
 - Pinned Q4, Q6 and Q8 GGUF files plus official codec downloaded and SHA-256

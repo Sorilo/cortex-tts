@@ -115,9 +115,9 @@ target playback client.
   450 ms and ran at 1.37×, while subsequent ones started in 186–196 ms and
   ran above 2×. This simulation assumes PCM playback starts exactly at the first
   audio packet and does not include real device jitter or output buffering.
-- Human listening, long-duration diverse-text soak, real playback-device
-  underruns, far-field microphone audio, and physical Satellite/Core integration
-  remain pending.
+- Human listening, real playback-device underruns, far-field microphone audio,
+  and physical Satellite/Core integration remain pending. The later 80-turn
+  varied-text soak below covers several minutes but not an overnight run.
 - The same-sentence Q4/Q6/Q8 default-voice WAVs are valid 24 kHz mono 16-bit
   PCM with no clipped samples. Their raw RMS sample magnitudes were about
   2,293/1,921/789 respectively; Q8 is markedly quieter in this single sample.
@@ -139,7 +139,7 @@ target playback client.
   One published cancel acknowledged in 215 ms with no subsequent audio.
   The alpha.5 wrapper counted a client closing after `cancelled` as a failure;
   the event is now terminal and a regression test checks the failure count.
-- The final release Compose pins the verified portable alpha.5 backend OCI
+- The release Compose previously pinned the verified portable alpha.5 backend OCI
   index `sha256:0ace2780f6a5b4f47fe4ca5b977db83c09e51bdd38f4c9a5a1f6df023262e65e`
   and alpha.6 wrapper index
   `sha256:39ed6a01f908de63554ab37bc37c3862ec22b929ef860a92a47bfa5cf2699144`.
@@ -148,6 +148,16 @@ target playback client.
   showed `cancelled:1`, `failures:0`, `active:false`, `queued:0`. A fresh next
   turn produced 188,160 PCM bytes and completed normally. This verifies the
   cancellation fix in the published wrapper, not only in the local tests.
+- The current release Compose retains the verified alpha.5 backend and pins the
+  published alpha.7 wrapper OCI index
+  `sha256:1afd3d6d1b45cad446e89404712212a9601432d3e1d734f71e5b1fc211280ce1`.
+  Alpha.7's CI tests and image publication passed. An isolated published-image
+  RTX 3080 smoke returned one terminal `code:protocol` event for malformed
+  JSON, closed the stream, then completed a fresh Q4 turn (153,600 PCM bytes,
+  3.2 s audio, first audio 376 ms, 1.86× real-time client ratio). Metrics were
+  `requests:2`, `failures:1`, `active:false`, `queued:0`; both containers had
+  zero restarts and the backend owned 2,957 MiB of GPU memory. One smoke turn
+  does not re-establish the earlier latency distribution for the new wrapper.
 - On the same digest-pinned Q4 release pair, two text pieces sent 1.5 s apart
   with `--flush-each` produced the first PCM packet 0.413 s after connection,
   before the second text piece at 1.506 s and before `end`. This is a real

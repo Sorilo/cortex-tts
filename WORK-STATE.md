@@ -26,8 +26,8 @@ Short+long startup warmup hides common first-request shader compilation behind
 readiness (20.0 s on this RTX 3080). New text shapes can still cause a slower
 first response. See docs/VALIDATION.md for sample sizes and caveats.
 
-Remaining: human listening/quantization quality judgment, long-duration
-diverse-text soak, real playback underrun measurement and physical integration.
+Remaining: human listening/quantization quality judgment, real playback
+underrun measurement and physical integration.
 Existing `cortex-dev`
 containers must remain untouched. Stop only our isolated GPU test resources.
 
@@ -77,5 +77,9 @@ This supports sustained synthetic throughput, not physical playback quality.
 
 The Cortex wrapper now classifies malformed client input as one terminal
 `code:protocol` event rather than sending a second backend error. Three new
-regressions verify slot recovery. The current alpha.6 wrapper image predates
-this change; publish and pin a fresh wrapper image before release use.
+regressions verify slot recovery. Alpha.7 wrapper image published at OCI index
+`sha256:1afd3d6d1b45cad446e89404712212a9601432d3e1d734f71e5b1fc211280ce1`;
+release Compose now pins it. Alpha.7 CI and image publication passed. An
+isolated published-image Q4 smoke returned one protocol error and a clean next
+turn, with `failures:1`, zero restarts and backend GPU residency. Earlier
+latency distributions are from alpha.6 and should not be relabeled alpha.7.

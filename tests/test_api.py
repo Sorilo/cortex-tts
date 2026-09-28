@@ -167,6 +167,31 @@ async def test_stream_client_writes_received_pcm_to_wav(services, monkeypatch, t
 
 
 @pytest.mark.asyncio
+async def test_preexisting_playback_cancel_suppresses_pcm_callback(services, monkeypatch):
+    base, done_gate, _, engine = services
+    monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
+    cancel_event = asyncio.Event()
+    cancel_event.set()
+    packets = []
+
+    async def on_audio(pcm):
+        packets.append(pcm)
+
+    args = SimpleNamespace(url=base.replace("http://", "ws://") + "/v1/speech/stream",
+                           voice="", instruction="Speak clearly.", text=["Hello."],
+                           output=None, cancel_after_audio_bytes=0,
+                           piece_delay_ms=0, flush_each=False, timeout=2)
+    result = await asyncio.wait_for(run_stream_client(
+        args, on_audio=on_audio, cancel_event=cancel_event,
+    ), 2)
+    assert packets == []
+    assert not done_gate.is_set()
+    assert result["complete"] is False
+    assert result["cancel_ack_seconds"] is not None
+    assert engine.metrics.cancelled == 1
+
+
+@pytest.mark.asyncio
 async def test_core_authorized_turn_streams_through_wrapper(services, monkeypatch):
     base, done_gate, _, engine = services
     monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
@@ -217,6 +242,58 @@ async def test_core_authorized_turn_streams_through_wrapper(services, monkeypatc
         if task is not None and not task.done():
             task.cancel()
             await asyncio.gather(task, return_exceptions=True)
+        await runner.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_core_turn_playback_cancel_stops_pcm_without_interrupting_core(
+    services, monkeypatch,
+):
+    base, done_gate, _, engine = services
+    monkeypatch.setenv("CORTEX_TTS_TOKEN", "secret")
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    with monkeypatch.context() as path_context:
+        path_context.syspath_prepend(str(scripts))
+        from core_turn_client import synthesize_core_turn
+
+    turn_id = "vt_" + "b" * 32
+    core_requests = []
+
+    async def core_result(request):
+        core_requests.append((request.method, request.path))
+        assert request.headers["Authorization"] == "Bearer core-test-token"
+        return web.json_response({"audio_turn_id": turn_id, "action_id": "act_cancel_test",
+                                  "state": "succeeded", "speech_text": "Authorized speech."})
+
+    app = web.Application()
+    app.add_routes([web.get("/v1/voice/device/turns/{turn_id}", core_result)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "127.0.0.1", 0)
+    await site.start()
+    cancel_event = asyncio.Event()
+    packets = []
+
+    async def on_audio(pcm):
+        packets.append(pcm)
+        cancel_event.set()
+
+    try:
+        core_url = f"http://127.0.0.1:{site._server.sockets[0].getsockname()[1]}"
+        result = await asyncio.wait_for(synthesize_core_turn(
+            core_url, turn_id, "core-test-token",
+            tts_url=base.replace("http://", "ws://") + "/v1/speech/stream",
+            on_audio=on_audio, cancel_event=cancel_event,
+        ), 2)
+        assert packets == [b"\x01\x00" * 100]
+        assert not done_gate.is_set()
+        assert result["tts"]["complete"] is False
+        assert result["tts"]["cancel_ack_seconds"] is not None
+        assert result["tts"]["audio_bytes_after_cancel"] == 0
+        assert engine.metrics.cancelled == 1
+        assert core_requests == [("GET", f"/v1/voice/device/turns/{turn_id}")]
+    finally:
+        done_gate.set()
         await runner.cleanup()
 
 

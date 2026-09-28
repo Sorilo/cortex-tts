@@ -31,6 +31,12 @@ the handler runs. Keep that handler short and enqueue into a bounded playback
 queue. The caller still owns speaker start, buffer depth, barge-in and any Core
 action interruption. Without a WAV output path, the example retains packet
 timings and byte counts but not the complete waveform.
+The same Python entry point accepts `cancel_event=asyncio.Event()`; setting it
+while synthesis is active sends TTS `cancel` without waiting for another audio
+packet, stops further PCM callbacks, and waits for the TTS cancellation ack.
+The caller must immediately stop the speaker and discard its playback queue.
+This event never invokes Core's `/interrupt` route or reverses a completed
+action.
 
 Open `GET /v1/speech/stream` as WebSocket with `Authorization: Bearer <token>`.
 The server returns `ready` with `version:1`, `turn_id`, `sample_rate:24000`,

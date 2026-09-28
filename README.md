@@ -110,6 +110,10 @@ on_audio=async_packet_handler)` passes each PCM packet to the handler before
 TTS completion. With no `--output`, the client counts packets without retaining
 the entire waveform in memory. The handler should enqueue promptly into a
 measured playback buffer; this example does not choose a Satellite buffer policy.
+Pass an `asyncio.Event` as `cancel_event` and set it on barge-in to send TTS
+`cancel` even while no new PCM arrives. The client then stops invoking the
+packet handler; the playback transport must clear its own queued audio. This
+does not call Core's action-interrupt endpoint.
 See [docs/CORTEX-INTEGRATION.md](docs/CORTEX-INTEGRATION.md) before adapting it
 to a live voice path.
 

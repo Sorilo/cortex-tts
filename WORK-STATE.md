@@ -258,3 +258,11 @@ callback and verifies that PCM was delivered while synthesis was still active.
 A separate WAV regression test keeps file output covered after removing the
 unneeded in-memory accumulation on callback-only turns; 31 local tests pass.
 No physical Satellite transport was changed or claimed validated.
+
+Added an external `asyncio.Event` cancellation input to the trusted Core turn
+client and streaming receive helper. It sends TTS `cancel` without waiting for
+another packet, stops delivering PCM callbacks once set, and leaves Core action
+interrupt untouched. Synthetic tests cover cancellation before first PCM and
+after a callback, with TTS acknowledgement and no Core POST. The local suite
+now has 33 passing tests. Physical speaker queue clearing and barge-in timing
+remain for coordinated Satellite validation.

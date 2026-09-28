@@ -44,7 +44,8 @@ def simulate_playback(packets: list[tuple[float, float]], threshold_seconds: flo
 
 
 async def run(args: argparse.Namespace, *,
-              on_audio: Callable[[bytes], Awaitable[None]] | None = None) -> dict:
+              on_audio: Callable[[bytes], Awaitable[None]] | None = None,
+              cancel_event: asyncio.Event | None = None) -> dict:
     """Receive progressive PCM; optionally forward each packet before completion."""
     headers = {"Authorization": "Bearer " + os.environ["CORTEX_TTS_TOKEN"]}
     started = time.monotonic()
@@ -75,11 +76,14 @@ async def run(args: argparse.Namespace, *,
                 raise RuntimeError("unexpected service contract")
             ready_seconds = time.monotonic() - started
             turn_id = ready["turn_id"]
+            start_sent = asyncio.Event()
+            cancel_lock = asyncio.Lock()
 
             async def send_input() -> None:
                 nonlocal first_text_sent, last_text_sent, end_sent
                 await ws.send_json({"type": "start", "voice_id": args.voice,
                                     "instruction": args.instruction})
+                start_sent.set()
                 for index, phrase in enumerate(args.text):
                     await ws.send_json({"type": "text", "text": phrase})
                     last_text_sent = time.monotonic() - started
@@ -93,6 +97,23 @@ async def run(args: argparse.Namespace, *,
                 end_sent = time.monotonic() - started
 
             sender = asyncio.create_task(send_input())
+
+            async def request_cancel() -> None:
+                nonlocal cancel_sent
+                async with cancel_lock:
+                    if cancel_sent is not None:
+                        return
+                    sender.cancel()
+                    await asyncio.gather(sender, return_exceptions=True)
+                    cancel_sent = time.monotonic()
+                    await ws.send_json({"type": "cancel"})
+
+            async def watch_cancel() -> None:
+                await cancel_event.wait()
+                await start_sent.wait()
+                await request_cancel()
+
+            watcher = asyncio.create_task(watch_cancel()) if cancel_event is not None else None
             try:
                 async for message in ws:
                     if message.type == aiohttp.WSMsgType.BINARY:
@@ -117,16 +138,15 @@ async def run(args: argparse.Namespace, *,
                         audio_bytes += len(message.data)
                         if args.output:
                             pcm.extend(message.data)
-                        if on_audio is not None:
+                        if on_audio is not None and cancel_sent is None and not (
+                            cancel_event is not None and cancel_event.is_set()
+                        ):
                             await on_audio(message.data)
-                        if cancel_sent is not None:
+                        if cancel_sent is not None and arrived >= cancel_sent:
                             audio_bytes_after_cancel += len(message.data)
                         if (args.cancel_after_audio_bytes and cancel_sent is None
                                 and audio_bytes >= args.cancel_after_audio_bytes):
-                            sender.cancel()
-                            await asyncio.gather(sender, return_exceptions=True)
-                            cancel_sent = time.monotonic()
-                            await ws.send_json({"type": "cancel"})
+                            await request_cancel()
                     elif message.type == aiohttp.WSMsgType.TEXT:
                         event = json.loads(message.data)
                         if event.get("turn_id") != turn_id:
@@ -142,9 +162,14 @@ async def run(args: argparse.Namespace, *,
                     else:
                         break
             finally:
+                if watcher is not None:
+                    watcher.cancel()
+                    watch_result = await asyncio.gather(watcher, return_exceptions=True)
                 if not sender.done():
                     sender.cancel()
                 send_result = await asyncio.gather(sender, return_exceptions=True)
+                if watcher is not None and isinstance(watch_result[0], Exception):
+                    raise watch_result[0]
                 if isinstance(send_result[0], Exception):
                     raise send_result[0]
             if complete and end_sent is None:

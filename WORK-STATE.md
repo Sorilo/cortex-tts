@@ -266,3 +266,13 @@ interrupt untouched. Synthetic tests cover cancellation before first PCM and
 after a callback, with TTS acknowledgement and no Core POST. The local suite
 now has 33 passing tests. Physical speaker queue clearing and barge-in timing
 remain for coordinated Satellite validation.
+
+Validated external `cancel_event` end-to-end against the published alpha.8/Q4
+backend and alpha.10 wrapper in an isolated RTX 3080 Vulkan project. Ten
+cancel-after-first-callback/fresh-turn pairs completed: event-to-return
+median/p95/max 116/121/121 ms, ten acknowledgements, no later PCM callbacks or
+post-cancel PCM, and 10/10 fresh recoveries. Fake Core saw only 20 GETs; no
+action-interrupt POST. Recorded exact source/image pins and synthetic limits in
+`docs/VALIDATION.md`; ignored JSON is under `evidence/local/`. The isolated
+containers were stopped and temporary test tokens removed. Owner listening
+and physical Satellite barge-in remain unverified.

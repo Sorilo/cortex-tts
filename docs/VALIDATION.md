@@ -75,6 +75,19 @@ target playback client.
   ignored artifacts are `evidence/local/core-handoff-published-alpha10*.json`
   and matching WAVs. Only the isolated `cortex-tts-release` project was
   started and stopped; temporary test tokens were removed.
+- The externally signaled playback-cancel path in client source `70416c0`
+  was exercised on the same published alpha.8/Q4 backend and alpha.10 wrapper
+  digest pair in a new isolated RTX 3080 Vulkan run. Ten fake-Core authorized
+  turns set `cancel_event` from the first PCM callback; all ten received a TTS
+  cancellation acknowledgement and stopped invoking that callback. Event to
+  client return was 116 ms median and 121 ms p95/maximum (ten samples);
+  protocol cancel-to-ack p95 was 121 ms. No PCM arrived after cancel in this
+  run. Each cancellation was followed by a fresh authorized turn, with 10/10
+  completing and producing PCM. The fake Core received 20 GETs and zero POSTs;
+  neither isolated container restarted. The ignored result is
+  `evidence/local/core-cancel-published-alpha10-10pairs.json`. This verifies
+  loopback client/backend behavior, not physical speaker queue clearing or
+  Satellite barge-in timing. The isolated project is down and tokens removed.
 - Docker Compose syntax, wrapper image build and pinned Vulkan backend image
   build pass. `ldd` resolves all backend libraries inside the runtime image.
 - Pinned Q4, Q6 and Q8 GGUF files plus official codec downloaded and SHA-256
